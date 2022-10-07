@@ -12,7 +12,7 @@ pub mod log {
     macro_rules! log {
     ( $( $t:tt )* ) => {
 
-        crate::log(&format_args!($($t)*).to_string())
+        fframes::log(&format_args!($($t)*).to_string())
     }
 }
 }
