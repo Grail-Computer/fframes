@@ -81,7 +81,7 @@ impl FFramesLogger for SilentLogger {
     fn log_frame(&self, _index: usize, _thread_number: usize, _svg: &str) {}
 
     fn success(&self, output_path: &str, _temp_files_dir: Option<&str>) {
-        println!("Success. Your video {}", output_path);
+        println!("Success. Your video {output_path}");
     }
 
     fn init_media_processing(&self, _all_frames: usize) {}
@@ -104,6 +104,8 @@ pub enum FFramesLoggerVariant {
     Silent,
     /// Renders one progress bar showing rendering progress frame by frame
     Compact,
+    /// Verbose logging for debugging purpose
+    Debug,
     /// Pass custom logger functionality by implementing FFramesLogger trait
     Custom(Arc<dyn FFramesLogger>),
 }
@@ -117,10 +119,13 @@ impl Default for FFramesLoggerVariant {
 pub fn make_logger(variant: FFramesLoggerVariant) -> Arc<dyn FFramesLogger> {
     match variant {
         FFramesLoggerVariant::Silent => Arc::new(SilentLogger) as Arc<dyn FFramesLogger>,
-        FFramesLoggerVariant::Compact => Arc::new(CompactFFramesLogger {
-            frames_progress_bar: OnceCell::new(),
-            media_progress_bar: OnceCell::new(),
-        }) as Arc<dyn FFramesLogger>,
+        // TODO: Implement custom verbose debugging loggger
+        FFramesLoggerVariant::Compact | FFramesLoggerVariant::Debug => {
+            Arc::new(CompactFFramesLogger {
+                frames_progress_bar: OnceCell::new(),
+                media_progress_bar: OnceCell::new(),
+            }) as Arc<dyn FFramesLogger>
+        }
         FFramesLoggerVariant::Custom(logger) => logger,
     }
 }

@@ -1,8 +1,12 @@
 clippy:
   cargo clippy -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
 
+clippy-fix:
+  cargo clippy --fix -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
+
 build:
   cargo build
+  yarn
   cd fframes-editor && yarn rescript:build
 
 init-repo:
@@ -28,3 +32,12 @@ play example:
 
 bench example:
   cd examples/{{example}} && time cargo run --release
+
+install-ffmpeg version: 
+  git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
+  cd ffmpeg && git fetch --tags
+  cd ffmpeg && git checkout n{{version}}
+
+  cd ffmpeg && ./configure --enable-shared --disable-x86asm
+  cd ffmpeg && make 
+  cd ffmpeg && sudo make install

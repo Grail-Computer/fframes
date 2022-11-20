@@ -78,7 +78,7 @@ impl Display for NumberOrPercentage {
             "{}",
             match self {
                 NumberOrPercentage::Number(number) => number.to_string(),
-                NumberOrPercentage::Percentage(percentage) => format!("{}%", percentage),
+                NumberOrPercentage::Percentage(percentage) => format!("{percentage}%"),
             }
         )
     }
@@ -143,7 +143,7 @@ impl Display for CueSettings {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         fn format_opt<T: Display>(name: &str, option: Option<T>) -> String {
             option
-                .map(|value| format!(" {}:{}", name, value))
+                .map(|value| format!(" {name}:{value}"))
                 .unwrap_or_else(|| "".to_owned())
         }
 
@@ -183,17 +183,17 @@ impl Display for Cue {
             "{}{}{} --> {}{}\n{}\n",
             self.note
                 .as_ref()
-                .map(|comment| format!("NOTE {}\n", comment))
+                .map(|comment| format!("NOTE {comment}\n"))
                 .unwrap_or_else(|| "".to_owned()),
             self.name
                 .as_ref()
-                .map(|comment| format!("NOTE {}\n", comment))
+                .map(|comment| format!("NOTE {comment}\n"))
                 .unwrap_or_else(|| "".to_owned()),
             self.start,
             self.end,
             self.cue_settings
                 .as_ref()
-                .map(|setting| format!("{}", setting))
+                .map(|setting| format!("{setting}"))
                 .unwrap_or_else(|| "".to_owned()),
             self.text
         )
@@ -216,7 +216,7 @@ impl Display for Vtt {
             START_MARKER,
             self.cues
                 .iter()
-                .map(|subtitle| format!("{}\n", subtitle))
+                .map(|subtitle| format!("{subtitle}\n"))
                 .collect::<String>()
         )
     }
@@ -424,6 +424,7 @@ mod tests {
 
         assert_eq!(parse_vtt(&content).unwrap(), expected_vtt);
     }
+
     #[test]
     fn incomplete_file() {
         let content = fs::read_to_string("tests/incomplete.vtt").unwrap();
@@ -431,8 +432,8 @@ mod tests {
         match parse_vtt(&content) {
             Ok(_) => panic!("The data is incomplete, should fail."),
             Err(error) => {
-                assert_eq!(error.looking_for, "Digit");
-                assert_eq!((error.input.fragment()), Span::from("").fragment());
+                assert_eq!(error.looking_for, "Digit".to_owned());
+                assert_eq!(error.fragment, Span::from("").fragment().to_owned());
             }
         }
     }
@@ -445,14 +446,13 @@ mod tests {
             Ok(_) => panic!("The data is invalid, should fail."),
             Err(VttError {
                 looking_for,
-                input,
-                message,
+                fragment,
                 ..
             }) => {
                 assert_eq!(looking_for, "Tag");
                 assert_eq!(
-                    input.fragment(),
-                    Span::from(",000\nHey subtitle two\n\n").fragment()
+                    fragment,
+                    Span::from(",000\nHey subtitle two\n\n").fragment().to_owned()
                 );
             }
         }

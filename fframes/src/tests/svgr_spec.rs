@@ -1,4 +1,4 @@
-use crate::{animation, AnimateRuntimeInput, Frame};
+use crate::{animation, Frame};
 
 mod fframes {
     pub use crate::*;
@@ -15,7 +15,11 @@ impl Ctx {
 
 #[test]
 pub fn macro_animations() {
-    let frame = Frame { fps: 50, index: 75 };
+    let frame = Frame {
+        global_index: 50,
+        fps: 50,
+        index: 75,
+    };
     let ctx = Ctx {};
 
     assert_eq!(
@@ -41,30 +45,9 @@ pub fn macro_animations() {
                 ))}
             />
           </svg>
-        ),
-        r"".to_string()
-    );
-}
-
-#[test]
-pub fn macro_frame_animate_runtime() {
-    let frame = Frame { fps: 50, index: 75 };
-    let ctx = Ctx {};
-
-    assert_eq!(
-        svgr!(
-          <rect
-            transform-origin="center center"
-            x={frame.animate_runtime(
-              AnimateRuntimeInput {
-                on: 16.0,
-                from: 100.,
-                to: 944.,
-                animation_runtime: &crate::AnimationRuntime::Static(0.),
-              }
-            )}
-          />
-        ),
-        r"".to_string()
+        )
+        .value,
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"1920\" height=\"1080\"><image width=\"900\" height=\"900\" xlink:href=\"code.png\" y=\"10\"></image><rect x=\"12.2\"></rect></svg>"
+        .to_owned()
     );
 }

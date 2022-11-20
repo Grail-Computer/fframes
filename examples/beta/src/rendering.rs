@@ -1,18 +1,18 @@
-use fframes::{animation, svgr, Scene, Video};
-use rand::prelude::*;
+use fframes::{animation, svgr, Scene};
+
 
 #[derive(Debug)]
 pub struct RenderingScene {}
 
 impl Scene for RenderingScene {
     fn duration(&self) -> fframes::video::Duration {
-        fframes::Duration::Seconds(4)
+        fframes::Duration::Frames(140)
     }
 
     fn render_frame(
         &self,
         frame: fframes::frame::Frame,
-        ctx: &fframes::FFramesContext,
+        _ctx: &fframes::FFramesContext,
     ) -> fframes::Svgr {
         const GPU_SECOND: f32 = 1.1;
 
@@ -67,7 +67,7 @@ impl Scene for RenderingScene {
           </defs>
 
           <text y="70%" x="11%" fill="#4b5563" font-family="JetBrains Mono" font-size="45" font-weight="600">
-             {format!("Rendering fps: {}", fps_counter)}
+             {format!("Rendering fps: {fps_counter}")}
           </text>
            <rect
              fill="url(#progress)"
