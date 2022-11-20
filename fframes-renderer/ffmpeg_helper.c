@@ -70,7 +70,7 @@ int concat_files(const char *output)
 
   /* find first video stream */
   for (unsigned i = 0; i < i_fmt_ctx->nb_streams; i++)
-    if (i_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+    if (i_fmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
     {
       i_video_stream = i_fmt_ctx->streams[i];
       break;
@@ -90,38 +90,42 @@ int concat_files(const char *output)
   o_video_stream = avformat_new_stream(o_fmt_ctx, 0);
   {
     AVCodecContext *c;
-    c = o_video_stream->codec;
+    c = o_video_stream->codecpar;
     c->bit_rate = i_fmt_ctx->bit_rate;
-    c->codec_id = i_video_stream->codec->codec_id;
-    c->codec_type = i_video_stream->codec->codec_type;
+    c->codec_id = i_video_stream->codecpar->codec_id;
+    c->codec_type = i_video_stream->codecpar->codec_type;
     c->time_base = i_video_stream->time_base;
     o_video_stream->time_base = c->time_base;
 
-    c->width = i_video_stream->codec->width;
-    c->height = i_video_stream->codec->height;
-    c->pix_fmt = i_video_stream->codec->pix_fmt;
+    c->width = i_video_stream->codecpar->width;
+    c->height = i_video_stream->codecpar->height;
+    AVCodec *avc = avcodec_find_decoder(i_video_stream->codecpar->codec_id);
+    AVCodecContext *avcc = avcodec_alloc_context3(avc);
+    c->pix_fmt = avcc->pix_fmt;
 
-    c->flags = i_video_stream->codec->flags;
+    c->flags = avcc->flags;
     c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
-    c->me_range = i_video_stream->codec->me_range;
-    c->max_qdiff = i_video_stream->codec->max_qdiff;
+    c->me_range = avcc->me_range;
+    c->max_qdiff = avcc->max_qdiff;
     c->gop_size = 12;
 
-    c->qmin = i_video_stream->codec->qmin;
-    c->qmax = i_video_stream->codec->qmax;
+    c->qmin = avcc->qmin;
+    c->qmax = avcc->qmax;
 
-    c->qcompress = i_video_stream->codec->qcompress;
+    c->qcompress = avcc->qcompress;
 
-    c->extradata = i_video_stream->codec->extradata;
-    c->extradata_size = i_video_stream->codec->extradata_size;
+    c->extradata = i_video_stream->codecpar->extradata;
+    c->extradata_size = i_video_stream->codecpar->extradata_size;
 
     avcodec_parameters_from_context(o_video_stream->codecpar, c);
   }
 
   if (o_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER != 0)
   {
-    o_fmt_ctx->oformat->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    AVOutputFormat* fl = o_fmt_ctx->oformat;
+    fl->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    o_fmt_ctx->oformat = fl;
   }
 
   // o_video_stream->codecpar = i_video_stream->codecpar;
@@ -155,7 +159,7 @@ int concat_files(const char *output)
     /* we only use first video stream of each input file */
     i_video_stream = NULL;
     for (unsigned s = 0; s < i_fmt_ctx->nb_streams; s++)
-      if (i_fmt_ctx->streams[s]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+      if (i_fmt_ctx->streams[s]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
       {
         i_video_stream = i_fmt_ctx->streams[s];
         break;
@@ -208,8 +212,10 @@ int concat_files(const char *output)
 
   av_write_trailer(o_fmt_ctx);
 
-  avcodec_close(o_fmt_ctx->streams[0]->codec);
-  av_freep(&o_fmt_ctx->streams[0]->codec);
+  AVCodec *avc = avcodec_find_decoder(o_fmt_ctx->streams[0]->codecpar->codec_id);
+  AVCodecContext *avcc = avcodec_alloc_context3(avc);
+  avcodec_close(avcc);
+  av_freep(avcc);
   av_freep(&o_fmt_ctx->streams[0]);
 
   avio_close(o_fmt_ctx->pb);

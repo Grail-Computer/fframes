@@ -39,7 +39,7 @@ unsafe fn open_file_stream(
 
     let mut input_stream = std::ptr::null_mut();
     for stream in streams {
-        let codec = (*stream.to_owned()).codec;
+        let codec = (*stream.to_owned()).codecpar;
 
         if (*codec).codec_type == codec_type {
             input_stream = *stream;
@@ -61,29 +61,34 @@ unsafe fn copy_codec_params(
     output_video_stream: *mut AVStream,
 ) {
     (*codec).bit_rate = (*input_format_ctx).bit_rate;
-    (*codec).codec_id = (*(*input_video_stream).codec).codec_id;
-    (*codec).codec_type = (*(*input_video_stream).codec).codec_type;
+    (*codec).codec_id = (*(*input_video_stream).codecpar).codec_id;
+
+    // getting AVCodecContext
+    let avc = avcodec_find_decoder((*codec).codec_id);
+    let avcc = avcodec_alloc_context3(avc);
+
+    (*codec).codec_type = (*(*input_video_stream).codecpar).codec_type;
 
     (*codec).time_base = (*input_video_stream).time_base;
     (*output_video_stream).time_base = (*codec).time_base;
 
-    (*codec).width = (*(*input_video_stream).codec).width;
-    (*codec).height = (*(*input_video_stream).codec).height;
-    (*codec).pix_fmt = (*(*input_video_stream).codec).pix_fmt;
+    (*codec).width = (*(*input_video_stream).codecpar).width;
+    (*codec).height = (*(*input_video_stream).codecpar).height;
+    (*codec).pix_fmt = (*avcc).pix_fmt;
 
-    (*codec).flags = (*(*input_video_stream).codec).flags;
+    (*codec).flags = (*avcc).flags;
     (*codec).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
 
-    (*codec).me_range = (*(*input_video_stream).codec).me_range;
-    (*codec).max_qdiff = (*(*input_video_stream).codec).max_qdiff;
-    (*codec).gop_size = (*(*input_video_stream).codec).gop_size; // maybe hardcode to 12?
+    (*codec).me_range = (*avcc).me_range;
+    (*codec).max_qdiff = (*avcc).max_qdiff;
+    (*codec).gop_size = (*avcc).gop_size; // maybe hardcode to 12?
 
-    (*codec).qmin = (*(*input_video_stream).codec).qmin;
-    (*codec).qmax = (*(*input_video_stream).codec).qmax;
-    (*codec).qcompress = (*(*input_video_stream).codec).qcompress;
+    (*codec).qmin = (*avcc).qmin;
+    (*codec).qmax = (*avcc).qmax;
+    (*codec).qcompress = (*avcc).qcompress;
 
-    (*codec).extradata = (*(*input_video_stream).codec).extradata;
-    (*codec).extradata_size = (*(*input_video_stream).codec).extradata_size;
+    (*codec).extradata = (*avcc).extradata;
+    (*codec).extradata_size = (*avcc).extradata_size;
     avcodec_parameters_from_context((*output_video_stream).codecpar, codec);
 }
 
@@ -111,7 +116,9 @@ pub unsafe fn concat_video_files_with_audio(
     );
 
     let output_video_stream = avformat_new_stream(output_format_ctx, std::ptr::null_mut());
-    let codec = (*output_video_stream).codec;
+    // getting AVCodecContext
+    let avc = avcodec_find_decoder((*(*output_video_stream).codecpar).codec_id);
+    let codec = avcodec_alloc_context3(avc);
 
     let audio_stream = Stream::make_audio(
         44100,
@@ -139,7 +146,9 @@ pub unsafe fn concat_video_files_with_audio(
     );
 
     if (*(*output_format_ctx).oformat).flags & AVFMT_GLOBALHEADER != 0 {
-        (*(*output_format_ctx).oformat).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32
+        let ofo = (*output_format_ctx).oformat.cast_mut();
+        (*ofo).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
+        (*output_format_ctx).oformat = ofo;
     }
 
     avio_open(

@@ -33,7 +33,7 @@ impl Stream {
         codec_id: AVCodecID,
         oc: *mut AVFormatContext,
     ) -> Result<
-        (*mut AVCodec, AVCodecID, *mut AVStream, *mut AVCodecContext),
+        (*const AVCodec, AVCodecID, *mut AVStream, *mut AVCodecContext),
         Result<Stream, AVError>,
     > {
         let codec_name = CString::new(preferred_codec_name).unwrap();
@@ -86,7 +86,9 @@ impl Stream {
         (*c).bit_rate_tolerance = 0;
 
         if (*(*oc).oformat).flags & AVFMT_GLOBALHEADER != 0 {
-            (*(*oc).oformat).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
+            let ofo = (*oc).oformat.cast_mut();
+            (*ofo).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
+            (*oc).oformat = ofo;
         }
 
         let opts: *mut *mut AVDictionary = &mut std::ptr::null_mut();
