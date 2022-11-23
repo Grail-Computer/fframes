@@ -23,8 +23,12 @@ impl Video for GooseVideo {
     const FPS: usize = 60;
     const WIDTH: usize = 1080;
     const HEIGHT: usize = 1920;
+<<<<<<< Updated upstream
     // const DURATION: fframes::Duration = fframes::Duration::FromAudio("thought.mp3");
     const DURATION: fframes::Duration = fframes::Duration::Seconds(400);
+=======
+    const DURATION: fframes::Duration = fframes::Duration::FromAudio("thought.mp3");
+>>>>>>> Stashed changes
 
     fn audio(&self) -> AudioMap {
         use AudioTimestamp::{Eof, Second};
@@ -35,11 +39,17 @@ impl Video for GooseVideo {
     fn render_frame(&self, frame: Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             audio: ctx.get_audio_data(self.audio_track),
-            sample_size: audio_data::SampleSize::S64,
+            sample_size: audio_data::SampleSize::S32,
             ctx,
             smooth_level: 4,
             window: None,
         });
+
+        let audio_visualization = fframes::prettify_spectrum(
+            audio_visualization
+       
+                .as_slice(),
+        );
 
         svgr!(
             <svg width="1080" height="1920" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -55,26 +65,24 @@ impl Video for GooseVideo {
 
                     <text
                         font-size="100"
-                        y="15%"
+                        y="10%"
                         x="50%"
                         text-anchor="middle"
                         fill="white"
                         font-family="JetBrains Mono"
                     >
-                     ".mp3 and .mp4"
+                     "The biggest"
                     </text>
-
-
 
                     <text
                       font-size="90"
-                      y="25%"
+                      y="20%"
                       x="50%"
                       text-anchor="middle"
                       fill="white"
                       font-family="JetBrains Mono"
                     >
-                      "are not the codecs"
+                      "looser or not?"
                     </text>
 
                     <image
@@ -87,12 +95,12 @@ impl Video for GooseVideo {
             />
 
             {
-                audio_visualization.iter().enumerate().skip(1).take(19).map(|(i, value)| {
-                    let height= (value * 10.).clamp(30., 400.);
+                audio_visualization.iter().enumerate().map(|(i, value)| {
+                    let height= (value * 5.).clamp(30., 500.);
                     svgr!(
                         <rect
-                            x={i * 50 + 20}
-                            y={800. - height / 2. }
+                            x={i * 50 + 160}
+                            y={740. - height / 2. }
                             width="30"
                             rx="15"
                             fill="white"

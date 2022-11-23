@@ -110,7 +110,7 @@ fn apply_fft_to_frame(
         }
     };
 
-    match sample_size {
+    let mut res = match sample_size {
         SampleSize::S2 => {
             let mut buffer: [_; 2] = apply_window(2).try_into().unwrap_or_else(|_| [0.0; 2]);
             microfft::real::rfft_2(&mut buffer).to_vec()
@@ -155,7 +155,10 @@ fn apply_fft_to_frame(
                 .unwrap_or_else(|_| [0.0; 1024]);
             microfft::real::rfft_1024(&mut buffer).to_vec()
         }
-    }
+    };
+
+    res[0].im = 0.0;
+    res
 }
 
 pub fn get_visualization(
