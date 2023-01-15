@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// The Frame {} struct contains temporal information about the current frame.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Frame {
     /// The frame index of the current scene. If rendering a Scene it is relative to the current frame.
     pub index: usize,
@@ -56,7 +56,7 @@ impl Frame {
     /// ```rust
     /// use fframes::{animation, AnimationRuntime, AnimateRuntimeInput, Frame};
     ///
-    /// let frame = Frame { index: 0, global_index: 0, fps: 60 };
+    /// let frame = Frame { index: 0, global_index: 0, fps: 60, ..Default::default() };
     /// let runtime = AnimationRuntime::from_easing(&animation::Easing::Linear(2.0));
     ///
     /// let value = frame.animate_runtime(AnimateRuntimeInput {  on: 3.2, from: 1000., to: 2000., animation_runtime: &runtime }); assert_eq!(value, 1000.);
@@ -99,7 +99,7 @@ impl Frame {
     ///
     /// ```rust
     /// use fframes::{ Frame, svgr, animation::Easing};
-    /// let frame = fframes::Frame { index: 0, global_index: 0, fps: 60 };
+    /// let frame = fframes::Frame { index: 0, global_index: 0, fps: 60, ..Default::default() };
     ///
     /// fframes::svgr!(
     ///   <rect
@@ -154,6 +154,37 @@ impl Frame {
             .collect()
     }
 
+    /// Wraps the text string into the lines according to the provided content area width.
+    /// This function is executed in runtime and create idiomatic svg <text> <tspan> text </tspan> </text> structure
+    /// which wraps the text string into the lines.
+    ///
+    /// It resolves individual character widths from provided font files automatically. **Important:
+    /// it won't work with system fonts in the editor, but would work with them in the renderer**.
+    ///
+    /// Line wrap rules is the same as css have for standard (no break-word support) wrapping. If font can not be resolved returns `None`.
+    ///
+    /// @example
+    /// ```no_run
+    /// let frame = fframes::Frame {
+    ///   ..Default::default()
+    /// };
+    ///
+    /// let ctx: fframes::FFramesContext = todo!();
+    ///
+    /// let wrapped_text = frame.text_break_lines(&ctx, "Hello world", &fframes::BreakLinesOpts {
+    ///     // max width of the text content. Once line become wider it wraps.
+    ///     width: 500,
+    ///     // font family name resolved. Can be checked in the editor for resolved font file.
+    ///     font_family: "Roboto",
+    ///     // the x position of the text element 
+    ///     x: "100",
+    ///     // the y position of the text element 
+    ///     y: "100",
+    ///     align: fframes::TextAlign::Center,
+    ///     ..Default::default()
+    /// });
+    ///
+    /// ```  
     pub fn text_break_lines<'a>(
         &mut self,
         ctx: &crate::FFramesContext<'a>,

@@ -7,6 +7,7 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Eq, Hash, Clone, fframes::serde::Serialize)]
 #[serde(crate = "fframes::serde")] // https://github.com/serde-rs/serde/issues/1465
 pub struct FaceInfo {
+    /// font name as bytes (we are in wasm so no utf8 strings parsing in runtime)
     name: Vec<u8>,
     stretch: fframes::FontStretch,
     weight: u16,
@@ -14,8 +15,8 @@ pub struct FaceInfo {
 }
 
 #[derive(Debug)]
+/// The fontdb implementation for wasm, which is a hashmap of the font options used in css queries (name, stretch, weight and style) to the raw font data coming from array buffer.
 pub struct WasmFontSource {
-    // The hashmap of the raw font data to the font name represented in bytes (we are in wasm no utf8)
     data: HashMap<FaceInfo, Vec<u8>>,
 }
 

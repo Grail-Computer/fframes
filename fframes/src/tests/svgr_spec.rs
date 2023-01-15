@@ -19,8 +19,9 @@ pub fn macro_animations() {
         global_index: 50,
         fps: 50,
         index: 75,
-        font_source: None
+        ..Default::default()
     };
+
     let ctx = Ctx {};
 
     assert_eq!(

@@ -7,7 +7,7 @@ use std::fmt;
 ///
 /// @example
 /// ```rust
-///use fframes::{Color, svgr};
+///use fframes::{Color, Svgr, svgr};
 /// 
 ///const WHITE: Color = Color::hex("#FFFFFF");
 ///

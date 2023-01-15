@@ -18,6 +18,7 @@ fn e2e_rendering() {
             render_backend: render_backend::CpuRenderingBackend {
                 cache_capacity: 5,
                 concurrency: 1,
+                ..Default::default()
             },
             preferred_codec: "libx264",
             media_dir: std::env::current_dir()
