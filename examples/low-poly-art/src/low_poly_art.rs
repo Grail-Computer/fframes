@@ -26,7 +26,7 @@ impl Video for LowPolyVideo {
         fframes::Scenes::from(vec)
     }
 
-    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> Svgr {
+    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         fframes::svgr!(
            <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -36,7 +36,7 @@ impl Video for LowPolyVideo {
           >
             <defs>
               <pattern id="scratch-pattern" patternUnits="userSpaceOnUse" width="230" height="177">
-                <image xlink:href={_ctx.get_image_link("white_noise.png")} x="0" y="0" width="230" height="177" />
+                <image xlink:href={ctx.get_image_link("white_noise.png")} x="0" y="0" width="230" height="177" />
               </pattern>
             </defs>
 
@@ -48,7 +48,7 @@ impl Video for LowPolyVideo {
               fill="#000"
             />
 
-            {_ctx.render_scenes(&frame)}
+            {ctx.render_scenes(frame)}
           </svg>
         )
     }

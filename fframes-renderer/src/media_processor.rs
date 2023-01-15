@@ -6,6 +6,7 @@ use fframes::{
 use rayon::prelude::*;
 use std::{
     collections::HashMap,
+    ffi::OsStr,
     fs, io,
     path::Path,
     sync::{Arc, Mutex},
@@ -21,13 +22,14 @@ pub(crate) fn load_media_from_folder(
     folder_path: &str,
 ) -> FFramesResult<(
     MediaProvider,
+    usvgr::fontdb::Database,
     HashMap<String, Arc<usvgr::PreloadedImageData>>,
 )> {
-    let audio_hash = Arc::new(Mutex::new(HashMap::new()));
-    let subtitles_hash = Arc::new(Mutex::new(HashMap::new()));
-    let image_hash = Arc::new(Mutex::new(HashMap::new()));
-    let fonts_hash = Arc::new(Mutex::new(HashMap::new()));
-    let usvgr_image_data = Arc::new(Mutex::new(HashMap::new()));
+    let audio_hash = Mutex::new(HashMap::new());
+    let subtitles_hash = Mutex::new(HashMap::new());
+    let image_hash = Mutex::new(HashMap::new());
+    let usvgr_image_data = Mutex::new(HashMap::new());
+    let fontdb = Mutex::new(usvgr::fontdb::Database::new());
 
     let folder_path = Path::new(folder_path);
     if !folder_path.is_dir() {
@@ -56,14 +58,18 @@ pub(crate) fn load_media_from_folder(
     media_files
         .into_par_iter()
         .try_for_each(|path| -> FFramesResult<()> {
-            if let Some(filename) = path.file_name().and_then(|os_str| os_str.to_str()) {
+            if let Some((extension, filename)) = path
+                .extension()
+                .and_then(OsStr::to_str)
+                .zip(path.file_name().and_then(OsStr::to_str))
+            {
                 logger.log_media_processing_start(filename, &path);
 
-                match filename {
-                    filename if filename.ends_with(".mp3") => {
+                match extension {
+                    "mp3" => {
                         let (sample_rate, samples) = media_loader::decode_mp3(&path);
 
-                        audio_hash.lock().unwrap().insert(
+                        audio_hash.lock()?.insert(
                             filename.to_owned(),
                             audio_data::AudioData::Preloaded(audio_data::PreloadedAudioData {
                                 sample_rate,
@@ -71,30 +77,23 @@ pub(crate) fn load_media_from_folder(
                             }),
                         );
                     }
-                    filename if filename.ends_with(".vtt") => {
+                    "vtt" => {
                         subtitles_hash
-                            .lock()
-                            .unwrap()
+                            .lock()?
                             .insert(filename.to_owned(), Subtitles::from_file(&path)?);
                     }
-                    filename if filename.ends_with(".ttf") || filename.ends_with(".woff") => {
+                    "ttf" | "ttc" | "otf" | "otc" => {
                         if let Some(font_path) = path.to_str() {
-                            fonts_hash
-                                .lock()
-                                .unwrap()
-                                .insert(filename.to_owned(), font_path.to_owned());
+                            let data = std::fs::read(font_path)?;
+                            fontdb.lock()?.load_font_data(data);
                         }
                     }
-                    filename
-                        if filename.ends_with(".png")
-                            || filename.ends_with(".jpg")
-                            || filename.ends_with(".jpeg") =>
-                    {
+                    "jpg" | "jpeg" | "png" => {
                         let data = fs::read(&path)?;
                         let buffer = image::load_from_memory(data.as_slice())
                             .map_err(|e| FFramesError::ImageError((filename.to_owned(), e)))?;
 
-                        usvgr_image_data.lock().unwrap().insert(
+                        usvgr_image_data.lock()?.insert(
                             filename.to_owned(),
                             usvgr::PreloadedImageData::new(
                                 if filename.ends_with(".png") {
@@ -108,7 +107,7 @@ pub(crate) fn load_media_from_folder(
                             ),
                         );
 
-                        image_hash.lock().unwrap().insert(
+                        image_hash.lock()?.insert(
                             filename.to_owned(),
                             ImageData {
                                 link: filename.to_owned(),
@@ -116,8 +115,8 @@ pub(crate) fn load_media_from_folder(
                             },
                         );
                     }
-                    filename if filename == ".DS_Store" => (),
-                    filename => {
+                    "DS_Store" => (),
+                    _ => {
                         logger.log_unprocessed_media_file(filename);
                     }
                 };
@@ -127,19 +126,15 @@ pub(crate) fn load_media_from_folder(
             Ok(())
         })?;
 
-    let audio = audio_hash.lock().unwrap();
-    let images = image_hash.lock().unwrap();
-    let subtitles = subtitles_hash.lock().unwrap();
-    let fonts = fonts_hash.lock().unwrap();
-    let usvgr_image_data = usvgr_image_data.lock().unwrap();
+    fontdb.lock().unwrap().load_system_fonts();
 
     Ok((
         MediaProvider {
-            audio: audio.clone(),
-            fonts: fonts.clone(),
-            images: images.clone(),
-            subtitles: subtitles.clone(),
+            audio: audio_hash.into_inner()?,
+            images: image_hash.into_inner()?,
+            subtitles: subtitles_hash.into_inner()?,
         },
-        usvgr_image_data.clone(),
+        fontdb.into_inner()?,
+        usvgr_image_data.into_inner()?,
     ))
 }

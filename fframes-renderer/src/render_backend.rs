@@ -1,4 +1,4 @@
-use fframes::{frame, video::Video, ResolvedAudioMap};
+use fframes::{frame, video::Video, BreaksLruCache, ResolvedAudioMap};
 use rayon::prelude::*;
 use std::{num::NonZeroUsize, ops::Range, sync::Arc};
 use svgr::SvgrCache;
@@ -73,12 +73,16 @@ pub struct CpuRenderingBackend {
     ///
     /// @default rayon::current_num_threads()
     pub concurrency: usize,
+    /// The number of frame.text_break_lines results to be cached.
+    /// Text rendering and wrapping is very expensive especially on CPU as it involves a lot of text shaping and layout along with font resolution.
+    pub text_cache_capacity: usize,
 }
 
 impl Default for CpuRenderingBackend {
     fn default() -> Self {
         Self {
             cache_capacity: 20,
+            text_cache_capacity: 10,
             concurrency: rayon::current_num_threads(),
         }
     }
@@ -129,6 +133,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         }
 
         let concurrent_chunks = self.split_video_chunks(duration_in_frames);
+        let resolved_audio_map: Option<ResolvedAudioMap> = video.audio().resolve(&ctx);
 
         let files = concurrent_chunks
             .par_iter()
@@ -153,10 +158,18 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                             let mut last_svg = "".to_owned();
                             let mut frame = EncoderFrame::make(&encoder.video_stream);
 
-                            let mut cache = if self.cache_capacity == 0 {
+                            let mut svgr_cache = if self.cache_capacity == 0 {
                                 SvgrCache::none()
                             } else {
                                 SvgrCache::new(NonZeroUsize::new(self.cache_capacity).unwrap())
+                            };
+
+                            let text_cache = if self.text_cache_capacity == 0 {
+                                None
+                            } else {
+                                Some(BreaksLruCache::new(
+                                    NonZeroUsize::new(self.text_cache_capacity).unwrap(),
+                                ))
                             };
 
                             let mut pixmap = svgr::tiny_skia::Pixmap::new(
@@ -175,6 +188,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                                 fps: TVideo::FPS,
                                                 index: fr,
                                                 global_index: fr,
+                                                breaks_lru_cache: text_cache.clone(),
                                             },
                                             &ctx,
                                         )
@@ -189,7 +203,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                             usvgr::FitTo::Original,
                                             svgr::tiny_skia::Transform::default(),
                                             pixmap.as_mut(),
-                                            &mut cache,
+                                            &mut svgr_cache,
                                         )
                                         .unwrap();
 
@@ -226,8 +240,6 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                 Ok(file)
             })
             .collect::<FFramesResult<Vec<_>>>()?;
-
-        let resolved_audio_map: Option<ResolvedAudioMap> = video.audio().resolve(&ctx);
 
         unsafe {
             concatenator::concat_video_files_with_audio(

@@ -12,5 +12,4 @@ pub struct MediaProvider {
     pub audio: HashMap<String, audio_data::AudioData>,
     pub images: HashMap<String, ImageData>,
     pub subtitles: HashMap<String, subtitles::Subtitles>,
-    pub fonts: HashMap<String, String>,
 }

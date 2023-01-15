@@ -22,72 +22,11 @@ pub struct GooseVideo {
     pub audio_track: &'static str,
 }
 
-pub enum TextAlign { 
-    Left, 
-    Center, 
-    Right,
-}
-
-struct BreakLinesOpts<'a> {
-    approx_char_width: usize,
-    width: usize,
-    line_height: f32,
-    x: &'a str,
-    y: &'a str,
-    align: TextAlign
-}
-
-fn break_lines_wip(
-    value: &str,
-    BreakLinesOpts {
-        approx_char_width,
-        width,
-        line_height,
-        x,
-        y,
-        align
-    }: BreakLinesOpts,
-) -> Svgr {
-    let mut structure = vec![(String::new(), 0usize)];
-    
-    value.split_whitespace().for_each(|word| {
-        let word_width = word.len() * approx_char_width; 
-        let (last_line, last_line_width) = structure.last_mut().unwrap();
-
-        if *last_line_width + approx_char_width + word_width > width {
-            structure.push((String::from(word), word_width));
-        } else {
-            if *last_line_width != 0 { 
-                last_line.push(' ');
-                *last_line_width += approx_char_width;
-            }
-
-            last_line.push_str(word);
-
-            *last_line_width += word_width;
-        }
-    });
-
-    structure
-        .into_iter()
-        .enumerate()
-        .map(|(index, (line, line_width))| { 
-            let dx = match align {
-                TextAlign::Left => 0,
-                TextAlign::Center => (width - line_width) / 2,
-                TextAlign::Right => width - line_width
-            };
-
-            svgr!(<tspan x={x} y={y} dx={dx} dy={format!("{}em", index as f32 * line_height)}>{line}</tspan>)
-        })
-        .collect()
-}
-
 impl Video for GooseVideo {
     const FPS: usize = 60;
     const WIDTH: usize = 1080;
     const HEIGHT: usize = 1920;
-    const DURATION: fframes::Duration = fframes::Duration::FromAudio("thought.mp3"); 
+    const DURATION: fframes::Duration = fframes::Duration::FromAudio("thought.mp3");
 
     fn audio(&self) -> AudioMap {
         use AudioTimestamp::{Eof, Second};
@@ -100,7 +39,6 @@ impl Video for GooseVideo {
         let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             audio: ctx.get_audio_data(self.audio_track),
             sample_size: audio_data::SampleSize::S32,
-            ctx,
             smooth_level: 4,
             window: None,
         });
@@ -135,20 +73,22 @@ impl Video for GooseVideo {
                      .collect::<Vec<_>>()
                  }
 
-                <text
-                  font-size="100"
-                  fill="white"
-                  font-family="JetBrains Mono"
-                >
-                  {break_lines_wip(subtitles.get_phrase_for_frame(&frame).unwrap_or_default(), BreakLinesOpts { 
-                    approx_char_width: 61, 
-                    width: 1000, 
-                    line_height: 1.2, 
-                    x: "40", 
-                    y: "32%",
-                    align: TextAlign::Center
-                  })}
-                </text>
+                {frame.text_break_lines(
+                    ctx,
+                    subtitles.get_phrase_for_frame(&frame).unwrap_or_default(),
+                    &fframes::BreakLinesOpts {
+                      width: 1000,
+                      line_height: 1.2,
+                      x: "40",
+                      y: "34%",
+                      font_size: 100,
+                      font_family: "JetBrains Mono",
+                      align: fframes::TextAlign::Center,
+                      fill: "white",
+                      font_weight: 400,
+                      ..Default::default()
+                    },
+                ).unwrap_or_default()}
 
                 <image
                   width="950"
@@ -157,7 +97,7 @@ impl Video for GooseVideo {
                   y={1920 - 950}
                   x={1080 / 2 - 400}
                 />
-                
+
         </svg>
         )
     }

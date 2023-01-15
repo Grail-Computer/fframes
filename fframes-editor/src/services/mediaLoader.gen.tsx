@@ -39,8 +39,16 @@ export type imageInfo = {
 };
 
 // tslint:disable-next-line:interface-over-type-literal
+export type fontInfo = {
+  readonly name: string; 
+  readonly style: string; 
+  readonly weight: number; 
+  readonly unicodeRange: string
+};
+
+// tslint:disable-next-line:interface-over-type-literal
 export type processedMedia = 
-    { tag: "Font"; value: string }
+    { tag: "Font"; value: fontInfo }
   | { tag: "Subtitles"; value: number }
   | { tag: "Image"; value: imageInfo }
   | { tag: "Audio"; value: audioInfo };

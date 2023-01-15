@@ -7,7 +7,7 @@ use crate::{
     render_backend::FFramesRenderBackend,
     renderer_error::FFramesResult,
 };
-use fframes::{frame, video::Video, ResolvedAudioMap};
+use fframes::{video::Video, ResolvedAudioMap};
 use futures::executor::block_on;
 use wgpu::{include_wgsl, util::DeviceExt};
 
@@ -98,16 +98,17 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                     let mut frame = EncoderFrame::make(&video_encoder.video_stream);
 
                     for fr in 0..duration_in_frames {
-                        let svg = video
-                            .render_frame(
-                                frame::Frame {
-                                    fps: TVideo::FPS,
-                                    index: fr,
-                                    global_index: fr,
-                                },
-                                &ctx,
-                            )
-                            .into_string();
+                        // let svg = video
+                        //     .render_frame(
+                        //         frame::Frame {
+                        //             fps: TVideo::FPS,
+                        //             index: fr,
+                        //             global_index: fr,
+                        //         },
+                        //         &ctx,
+                        //     )
+                        //     .into_string();
+                        let svg = "".to_owned();
 
                         let rtree = usvgr::Tree::from_str(&svg, usvg_options).unwrap();
                         let (mesh, transforms, primitives) = tesselate_svg(rtree);

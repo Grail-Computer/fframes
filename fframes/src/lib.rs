@@ -12,6 +12,8 @@ mod scenes;
 pub mod subtitles;
 mod svgr;
 pub mod video;
+mod font_data;
+mod text_wrap;
 
 pub use animation::*;
 pub use audio_data::*;
@@ -26,7 +28,20 @@ pub use subtitles::*;
 pub use svgr::*;
 pub use svgr_macro::*;
 pub use video::*;
-
+pub use font_data::*;
+pub use text_wrap::*;
 pub use roxmltree;
+
+pub mod ttf_parser { 
+  pub use ttf_parser::*;
+}
+
+pub mod lru { 
+  pub use lru::*;
+}
+
+pub mod serde { 
+  pub use serde::*;
+}
 
 mod tests;

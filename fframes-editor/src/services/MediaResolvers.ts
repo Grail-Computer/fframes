@@ -19,7 +19,7 @@ export const resolveAudio: MediaResolver = async (
     minimp3decoderWasm
   );
 
-  const data = await decoder.decode();
+  const data = await decoder.decode(decoder.duration);
   const length = Math.floor(data.pcm.length / data.numChannels);
 
   const monoPcm = new Int16Array(length);
@@ -57,54 +57,34 @@ export const resolveSubtitles: MediaResolver = async (
   });
 };
 
-function getCachedFontFamilyName(
-  url: string,
-  arrayBuffer: ArrayBuffer,
-  wasmController: WasmController
-) {
-  const cacheKey = `font-${url}-${arrayBuffer.byteLength}`;
-
-  let fontName = localStorage.getItem(cacheKey);
-  if (fontName) {
-    return fontName;
-  }
-
-  const result = wasmController.get_font_file_family(
-    new Uint8Array(arrayBuffer)
-  );
-
-  if (result !== null) {
-    const decoder = new TextDecoder("utf-8");
-    fontName = decoder.decode(result);
-
-    localStorage.setItem(cacheKey, fontName);
-  }
-
-  return fontName;
-}
-
 export const resolveFont: MediaResolver = async (name, url, wasmController) => {
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
+  const fontInfo = wasmController.ingest_font(new Uint8Array(arrayBuffer));
 
-  const fontName = getCachedFontFamilyName(url, arrayBuffer, wasmController);
+  const decoder = new TextDecoder("utf-8");
+  let fontName = decoder.decode(new Uint8Array(fontInfo.name).buffer);
+
   if (!fontName) {
     console.error(
       `Can not parse the font file ${url} there is a huge chance that this font file won't work in the renderer. For now trying to fallback to browser based font`
     );
   }
 
-  const fontFace = new FontFace(
-    fontName ?? name.replace(/\.[^/.]+$/, ""),
-    arrayBuffer
-  );
+  let guaranteedFontName = fontName ?? name.replace(/\.[^/.]+$/, "");
+  const fontFace = new FontFace(guaranteedFontName, arrayBuffer);
 
   const loadedFont = await fontFace.load();
   document.fonts.add(loadedFont);
 
   return resolveMedia(name, {
     tag: "Font",
-    value: `${fontName} (${loadedFont.unicodeRange})`,
+    value: {
+      name: guaranteedFontName,
+      style: fontInfo.style.toLowerCase(),
+      weight: fontInfo.weight,
+      unicodeRange: loadedFont.unicodeRange,
+    },
   });
 };
 

@@ -26,6 +26,21 @@ module LoadedMediaIcon = {
   }
 }
 
+let stringifyFontWeight = weight => {
+  switch weight {
+  | 100 => "Thin"
+  | 200 => "Extra light"
+  | 300 => "Light"
+  | 400 => "Regular"
+  | 500 => "Medium"
+  | 600 => "Semi Bold"
+  | 700 => "Bold"
+  | 800 => "Extra bold"
+  | 900 => "Black"
+  | _ => ""
+  }
+}
+
 module LoadedMedia = {
   @react.component
   let make = (~name, ~media: MediaLoader.processedMedia) => {
@@ -37,7 +52,10 @@ module LoadedMedia = {
           {switch media {
           | Audio({sampleRate, duration}) =>
             `${duration->Utils.Duration.formatSeconds}, ${sampleRate->Int.toString}hz`->React.string
-          | Font(fontInfo) => React.string(fontInfo)
+          | Font(fontInfo) if fontInfo.style === "normal" =>
+            `${fontInfo.name} (${fontInfo.weight->stringifyFontWeight}, ${fontInfo.unicodeRange})`->React.string
+          | Font(fontInfo) =>
+            `${fontInfo.name} (${fontInfo.style}, ${fontInfo.weight->stringifyFontWeight}, ${fontInfo.unicodeRange})`->React.string
           | Subtitles(phrasesCount) => React.string(`${phrasesCount->Int.toString} phrases`)
           | Image({width, height}) => `${width->Int.toString}x${height->Int.toString}`->React.string
           }}

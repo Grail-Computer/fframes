@@ -1,4 +1,4 @@
-pub(crate) mod animation;
+pub mod animation;
 pub use animation::*;
 
 mod spring;

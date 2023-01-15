@@ -1,0 +1,113 @@
+use fframes::{
+    ttf_parser::{self},
+    FontStretch, FontStyle,
+};
+use std::collections::HashMap;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, fframes::serde::Serialize)]
+#[serde(crate = "fframes::serde")] // https://github.com/serde-rs/serde/issues/1465
+pub struct FaceInfo {
+    name: Vec<u8>,
+    stretch: fframes::FontStretch,
+    weight: u16,
+    style: fframes::FontStyle,
+}
+
+#[derive(Debug)]
+pub struct WasmFontSource {
+    // The hashmap of the raw font data to the font name represented in bytes (we are in wasm no utf8)
+    data: HashMap<FaceInfo, Vec<u8>>,
+}
+
+impl WasmFontSource {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+        }
+    }
+
+    pub fn insert_font(&mut self, data: Vec<u8>) -> Option<FaceInfo> {
+        let face = ttf_parser::Face::parse(&data, 0).ok()?;
+        let name_bytes = parse_family_name(face.raw_face())?;
+
+        let face_info = FaceInfo {
+            name: name_bytes,
+            weight: face.weight().to_number(),
+            stretch: face.width().into(),
+            style: face.style().into(),
+        };
+
+        self.data.insert(face_info.clone(), data);
+        Some(face_info)
+    }
+}
+
+#[derive(Debug)]
+pub struct WasmFontFace<'a> {
+    pub name: String,
+    pub face: ttf_parser::Face<'a>,
+}
+
+impl<'a> fframes::FontFace<'a> for WasmFontFace<'a> {
+    fn is_monospaced(&self) -> Option<bool> {
+        Some(self.face.is_monospaced())
+    }
+
+    fn resolve_char_width(&self, font_size: usize, char: char) -> Option<usize> {
+        let glyph_id = self.face.glyph_index(char)?;
+
+        Some(
+            font_size * self.face.tables().hmtx?.advance(glyph_id)? as usize
+                / self.face.units_per_em() as usize,
+        )
+    }
+}
+
+impl Default for WasmFontSource {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a> fframes::FontSource<'a> for WasmFontSource {
+    fn resolve_font(
+        &'a self,
+        font_name: &str,
+        font_weight: u16,
+        font_style: FontStyle,
+        font_stretch: FontStretch,
+    ) -> Option<Box<dyn fframes::FontFace + 'a>> {
+        let font = self.data.get(&FaceInfo {
+            name: font_name.as_bytes().to_vec(),
+            stretch: font_stretch,
+            weight: font_weight,
+            style: font_style,
+        })?;
+
+        let face = ttf_parser::Face::parse(font, 0).ok()?;
+
+        Some(Box::new(WasmFontFace {
+            face,
+            name: font_name.to_owned(),
+        }))
+    }
+}
+
+pub fn parse_family_name(raw_face: &ttf_parser::RawFace) -> Option<Vec<u8>> {
+    const NAME_TAG: ttf_parser::Tag = ttf_parser::Tag::from_bytes(b"name");
+    let name_data = raw_face.table(NAME_TAG)?;
+    let name_table = ttf_parser::name::Table::parse(name_data)?;
+
+    name_table.names.into_iter().find_map(|name| {
+        if name.name_id == ttf_parser::name_id::FAMILY {
+            Some(
+                name.name
+                    .iter()
+                    .filter_map(|b| if *b != 0 { Some(*b) } else { None })
+                    .collect(),
+            )
+        } else {
+            None
+        }
+    })
+}

@@ -1,7 +1,7 @@
 use std::{fmt, iter::FromIterator};
 
 /// This struct should represent the svg AST. WIP.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Svgr {
     pub value: String,
 }

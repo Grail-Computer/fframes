@@ -19,7 +19,6 @@ impl Scene for Owl {
             audio: ctx.get_audio_data("owl.mp3"),
             sample_size: fframes::SampleSize::S64,
             smooth_level: 4,
-            ctx,
             window: Some(fframes::WindowFunction::Hamming),
         });
 

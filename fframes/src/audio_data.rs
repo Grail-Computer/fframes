@@ -1,4 +1,4 @@
-use crate::{audio_window_functions, fframes_context};
+use crate::audio_window_functions;
 use std::{convert::TryInto, ops::Range};
 
 #[derive(Debug, Clone)]
@@ -86,7 +86,6 @@ pub struct VisualizeFrameInput<'a> {
     pub audio: &'a AudioData,
     pub sample_size: SampleSize,
     pub smooth_level: usize,
-    pub ctx: &'a fframes_context::FFramesContext<'a>,
     pub window: Option<audio_window_functions::WindowFunction>,
 }
 
@@ -160,9 +159,9 @@ fn apply_fft_to_frame(
 
 pub fn get_visualization(
     frame: usize,
+    fps: usize,
     VisualizeFrameInput {
         sample_size,
-        ctx,
         audio,
         window,
         ..
@@ -171,7 +170,7 @@ pub fn get_visualization(
     // TODO cache the results per frame to avoid same frame calculation when smoothing
     let fft_size = get_fft_size_number(sample_size);
 
-    let res = apply_fft_to_frame(sample_size, window, audio, frame, ctx.fps as i64)
+    let res = apply_fft_to_frame(sample_size, window, audio, frame, fps as i64)
         .iter()
         .map(|x| x.norm() / fft_size as f32)
         .collect::<Vec<f32>>();

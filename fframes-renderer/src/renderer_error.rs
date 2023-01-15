@@ -1,5 +1,5 @@
 use colored::Colorize;
-use std::fmt;
+use std::{fmt, sync::PoisonError};
 
 pub enum AVError {
     MissingVideoStreamInFile(String),
@@ -45,6 +45,7 @@ pub enum FFramesError {
     MissingRequiredMedia(String),
     CoreError(fframes::error::FFramesCoreError),
     ImageError((String, image::ImageError)),
+    ConcurrencyError,
 }
 
 impl fmt::Debug for FFramesError {
@@ -68,6 +69,7 @@ impl fmt::Debug for FFramesError {
                 Self::CoreError(err) => format!("{err:?}"),
                 Self::ImageError((file, err)) =>
                     format!("Can not decode image {file}. Error {err:?}"),
+                Self::ConcurrencyError => "Something not correct happened while trying concurrently access one of the resources".to_owned()
             }
         )
     }
@@ -96,5 +98,11 @@ impl From<fframes::SubtitlesError> for FFramesError {
 impl From<fframes::error::FFramesCoreError> for FFramesError {
     fn from(err: fframes::error::FFramesCoreError) -> Self {
         Self::CoreError(err)
+    }
+}
+
+impl<T> From<PoisonError<T>> for FFramesError {
+    fn from(_: PoisonError<T>) -> Self {
+        Self::ConcurrencyError
     }
 }

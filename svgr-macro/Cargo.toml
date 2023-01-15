@@ -12,5 +12,7 @@ quote = "1"
 syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
 uuid = { version = "0.8", features = ["v4"] }
 usvg = "0.23.0"
+proc-macro-crate = "1.2.1"
+
 [dev-dependencies]
 criterion = "0.3"

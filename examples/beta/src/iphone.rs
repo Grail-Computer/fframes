@@ -46,7 +46,6 @@ impl Scene for IphoneScene {
 
         let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             smooth_level: 3,
-            ctx,
             audio: ctx.get_audio_data("beta.mp3"),
             sample_size: audio_data::SampleSize::S16,
             window: None,

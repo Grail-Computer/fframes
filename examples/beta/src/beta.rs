@@ -125,7 +125,7 @@ impl Video for BetaVideo {
               fill="#fff"
             />
 
-            {ctx.render_scenes(&frame)}
+            {ctx.render_scenes(frame)}
           </svg>
         )
     }

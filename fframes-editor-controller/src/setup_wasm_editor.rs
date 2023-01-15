@@ -9,8 +9,8 @@ macro_rules! setup_wasm_editor {
 
         static VIDEO: $x = $x $params;
 
-        #[derive(Clone, fframes_editor_controller::prelude::serde::Serialize)]
-        #[serde(crate = "fframes_editor_controller::prelude::serde")] // https://github.com/serde-rs/serde/issues/1465
+        #[derive(Clone, fframes::serde::Serialize)]
+        #[serde(crate = "fframes::serde")] // https://github.com/serde-rs/serde/issues/1465
         pub struct AudioTrack {
             pub name: &'static str,
             pub start: usize,
@@ -18,6 +18,8 @@ macro_rules! setup_wasm_editor {
         }
 
         lazy_static! {
+            static ref BREAK_LINES_CACHE: fframes::BreaksLruCache = fframes::BreaksLruCache::new(std::num::NonZeroUsize::new(10).unwrap());
+            static ref FONTS: Mutex<wasm_font_source::WasmFontSource> = Mutex::new(wasm_font_source::WasmFontSource::new());
             static ref SCENES: Mutex<Option<fframes::ResolvedScenesTimeline>> = Mutex::new(None);
             static ref AUDIO_MAP: Mutex<Option<Vec<AudioTrack>>> = {
                 Mutex::new($x::audio(&VIDEO).0.map(|audio_map| {
@@ -42,7 +44,6 @@ macro_rules! setup_wasm_editor {
                     audio: HashMap::new(),
                     images: HashMap::new(),
                     subtitles: HashMap::new(),
-                    fonts: HashMap::new()
                 });
         }
 
@@ -121,7 +122,6 @@ macro_rules! setup_wasm_editor {
             Ok(duration_in_frames as usize)
         }
 
-
         async fn get_duration_frames() -> i32 {
             let (duration, scenes) =
                 fframes::resolve_duration_and_scenes_async(&VIDEO, Box::new(|val| Box::pin(load_audio_duration(val))))
@@ -190,30 +190,37 @@ macro_rules! setup_wasm_editor {
 
         #[wasm_bindgen]
         pub fn render_frame(frame: i64) -> String {
+            use std::ops::Deref;
+
             VIDEO.render_frame(
                 frame::Frame {
                     fps: $x::FPS,
                     index: frame as usize,
-                    global_index: frame as usize
+                    global_index: frame as usize,
+                    breaks_lru_cache: Some(BREAK_LINES_CACHE.clone())
                 },
                 &fframes_context::FFramesContext {
                     duration_in_frames: 0,
                     mode: fframes_context::FFramesMode::Editor,
                     fps: $x::FPS,
                     sample_rate: 44100,
+                    font_source: Some(FONTS.lock().unwrap().deref()),
                     scenes:  SCENES.lock().unwrap().as_ref(),
-                    media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
+                    media_provider: MEDIA_PROVIDER.lock().unwrap().deref(),
                 },
             ).into_string()
         }
 
         #[wasm_bindgen]
         pub fn render_preview_frame(frame: i64) -> String {
+            use std::ops::Deref;
+
             VIDEO.render_frame(
                 frame::Frame {
                     fps: $x::FPS,
                     index: frame as usize,
-                    global_index: frame as usize
+                    global_index: frame as usize,
+                    breaks_lru_cache: None.into()
                 },
                 &fframes_context::FFramesContext {
                     duration_in_frames: 0,
@@ -221,29 +228,20 @@ macro_rules! setup_wasm_editor {
                     fps: $x::FPS,
                     sample_rate: 44100,
                     scenes:  SCENES.lock().unwrap().as_ref(),
-                    media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
+                    media_provider: MEDIA_PROVIDER.lock().unwrap().deref(),
+                    font_source: None,
                 },
             ).into_string()
         }
 
-        fn parse_family_name(raw_face: &ttf_parser::RawFace) -> Option<Vec<u8>> {
-            const NAME_TAG: ttf_parser::Tag = ttf_parser::Tag::from_bytes(b"name");
-            let name_data = raw_face.table(NAME_TAG)?;
-            let name_table = ttf_parser::name::Table::parse(name_data)?;
-
-            name_table.names.into_iter().find_map(|name| {
-                if name.name_id == ttf_parser::name_id::FAMILY {
-                    Some(name.name.to_vec().into_iter().filter(|b| *b != 0).collect())
-                } else {
-                    None
-                }
-            })
-        }
-
         #[wasm_bindgen]
-        pub fn get_font_file_family(slice: &[u8]) -> Option<Vec<u8>> {
-            let font = ttf_parser::RawFace::from_slice(slice, 0).unwrap();
-            parse_family_name(&font)
+        pub fn ingest_font(slice: &[u8]) -> JsValue {
+            use fframes::FontSource;
+
+            let mut fonts = FONTS.lock().unwrap();
+            let face_info = fonts.insert_font(slice.to_vec());
+
+            JsValue::from_serde(&face_info).unwrap()
         }
     };
 }

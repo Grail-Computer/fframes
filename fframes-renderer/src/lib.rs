@@ -8,8 +8,12 @@ mod concatenator;
 mod encoder;
 mod ffmpeg_helper;
 pub mod fframes_logger;
+mod renderer_font_source;
 pub use fframes_logger::*;
 use renderer_error::FFramesResult;
+
+use crate::renderer_font_source::RendererFontSource;
+
 mod gpu;
 mod media_processor;
 pub mod render_backend;
@@ -36,22 +40,15 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
     let fps = TVideo::FPS;
     let logger = fframes_logger::make_logger(options.logger);
 
-    let (media_provider, image_data) =
+    let (media_provider, font_db, image_data) =
         media_processor::load_media_from_folder(&logger, options.media_dir)?;
 
-    let mut opt = usvgr::Options {
+    let opt = usvgr::Options {
         image_data,
         font_family: options.default_font.to_string(),
+        fontdb: font_db,
         ..Default::default()
     };
-
-    opt.fontdb.load_system_fonts();
-
-    media_provider.fonts.values().for_each(|font_path| {
-        opt.fontdb
-            .load_font_file(font_path)
-            .unwrap_or_else(|_| println!("Can not load a font"));
-    });
 
     let (duration_in_frames, scenes) =
         fframes::video::resolve_duration_and_scenes_sync(&video, |name| {
@@ -69,13 +66,18 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
                 })
         })?;
 
+    let font_source = RendererFontSource {
+        fontdb: &opt.fontdb,
+    };
+
     let ctx = fframes_context::FFramesContext {
         sample_rate: 44100,
         mode: fframes::FFramesMode::Renderer,
         fps,
-        media_provider,
+        media_provider: &media_provider,
         duration_in_frames,
         scenes: scenes.as_ref(),
+        font_source: Some(&font_source),
     };
 
     logger.init_frames_rendering(duration_in_frames);
@@ -103,12 +105,13 @@ pub fn debug_frame<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBack
     options: RenderOptions<'a, TBackend>,
 ) -> FFramesResult<()> {
     let logger = fframes_logger::make_logger(options.logger);
-    let (media_provider, image_data) =
+    let (media_provider, font_db, image_data) =
         media_processor::load_media_from_folder(&logger, options.media_dir).unwrap();
 
-    let mut opt = usvgr::Options {
+    let opt = usvgr::Options {
         image_data,
         font_family: options.default_font.to_string(),
+        fontdb: font_db,
         ..Default::default()
     };
 
@@ -127,24 +130,18 @@ pub fn debug_frame<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBack
             })
     })?;
 
-    // let relative_frame_index = scenes
-    //     .and_then(|scenes| scenes.find_relative_index(frame_index))
-    //     .unwrap_or(frame_index);
-    opt.fontdb.load_system_fonts();
-
-    media_provider.fonts.values().for_each(|font_path| {
-        opt.fontdb
-            .load_font_file(font_path)
-            .unwrap_or_else(|_| println!("Can not load a font"));
-    });
+    let font_source = RendererFontSource {
+        fontdb: &opt.fontdb,
+    };
 
     let ctx = fframes_context::FFramesContext {
         sample_rate: 44100,
         mode: fframes::FFramesMode::Renderer,
         fps: TVideo::FPS,
-        media_provider,
+        media_provider: &media_provider,
         duration_in_frames: 1,
         scenes: scenes.as_ref(),
+        font_source: Some(&font_source),
     };
 
     options.render_backend.debug_frame(
@@ -152,6 +149,7 @@ pub fn debug_frame<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBack
             index: frame_index,
             global_index: frame_index,
             fps: TVideo::FPS,
+            breaks_lru_cache: None,
         },
         output_png,
         video,

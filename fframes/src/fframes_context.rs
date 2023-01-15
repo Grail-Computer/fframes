@@ -1,28 +1,29 @@
 use std::iter::FromIterator;
 
 use crate::{
-    audio_data, media_provider, subtitles, video::ResolvedScenesTimeline, Frame, ResolvedAudioMap,
-    Svgr,
+    audio_data, media_provider, subtitles, video::ResolvedScenesTimeline, FontSource, Frame,
+    ResolvedAudioMap, Svgr,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum FFramesMode {
     Editor,
     EditorTimelinePreview,
     Renderer,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FFramesContext<'a> {
     pub fps: usize,
     pub sample_rate: usize,
     pub mode: FFramesMode,
-    pub media_provider: media_provider::MediaProvider,
+    pub media_provider: &'a media_provider::MediaProvider,
     pub duration_in_frames: usize,
+    pub font_source: Option<&'a (dyn FontSource<'a> + 'a)>,
     pub scenes: Option<&'a ResolvedScenesTimeline>,
 }
 
-impl<'a> FFramesContext<'a> {
+impl<'a: 'b, 'b> FFramesContext<'a> {
     pub fn get_audio_data(&self, filename: &str) -> &audio_data::AudioData {
         match self.media_provider.audio.get(filename) {
             Some(data) => data,
@@ -30,7 +31,7 @@ impl<'a> FFramesContext<'a> {
         }
     }
 
-    pub fn get_subtitles(&self, filename: &str) -> &subtitles::Subtitles {
+    pub fn get_subtitles(&self, filename: &str) -> &'b subtitles::Subtitles {
         match self.media_provider.subtitles.get(filename) {
             Some(data) => data,
             None => panic!(
@@ -41,10 +42,10 @@ impl<'a> FFramesContext<'a> {
     }
 
     pub fn get_image_link(&self, filename: &str) -> String {
-        match (self.mode, self.media_provider.images.get(filename)) {
+        match (&self.mode, self.media_provider.images.get(filename)) {
             (FFramesMode::EditorTimelinePreview, Some(data)) if data.base64.is_some() => {
                 // safe to unwrap because of leading if
-                data.base64.as_ref().unwrap().to_owned()
+                data.base64.to_owned().unwrap()
             }
             (_, Some(data)) => data.link.to_owned(),
             _ => panic!(
@@ -54,7 +55,7 @@ impl<'a> FFramesContext<'a> {
         }
     }
 
-    pub fn render_scenes(&self, global_frame: &Frame) -> Svgr {
+    pub fn render_scenes(&self, global_frame: Frame) -> Svgr {
         if let Some(scenes) = self.scenes.as_ref() {
             Svgr::from_iter(scenes.0.iter().filter_map(|(range, scene)| {
                 if range.contains(&global_frame.index) {
@@ -63,6 +64,7 @@ impl<'a> FFramesContext<'a> {
                             fps: global_frame.fps,
                             global_index: global_frame.index,
                             index: global_frame.index - range.start,
+                            breaks_lru_cache: global_frame.breaks_lru_cache.clone(),
                         },
                         self,
                     ))

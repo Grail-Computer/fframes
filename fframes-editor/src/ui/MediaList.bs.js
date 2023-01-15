@@ -59,13 +59,58 @@ var LoadedMediaIcon = {
   make: MediaList$LoadedMediaIcon
 };
 
+function stringifyFontWeight(weight) {
+  if (weight >= 500) {
+    if (weight < 701) {
+      if (weight > 699 || weight < 501) {
+        if (weight >= 700) {
+          return "Bold";
+        } else {
+          return "Medium";
+        }
+      } else if (weight !== 600) {
+        return "";
+      } else {
+        return "Semi Bold";
+      }
+    } else if (weight !== 800) {
+      if (weight !== 900) {
+        return "";
+      } else {
+        return "Black";
+      }
+    } else {
+      return "Extra bold";
+    }
+  } else if (weight >= 201) {
+    if (weight !== 300) {
+      if (weight !== 400) {
+        return "";
+      } else {
+        return "Regular";
+      }
+    } else {
+      return "Light";
+    }
+  } else if (weight !== 100) {
+    if (weight >= 200) {
+      return "Extra light";
+    } else {
+      return "";
+    }
+  } else {
+    return "Thin";
+  }
+}
+
 function MediaList$LoadedMedia(Props) {
   var name = Props.name;
   var media = Props.media;
   var tmp;
   switch (media.TAG | 0) {
     case /* Font */0 :
-        tmp = media._0;
+        var fontInfo = media._0;
+        tmp = fontInfo.style === "normal" ? fontInfo.name + " (" + stringifyFontWeight(fontInfo.weight) + ", " + fontInfo.unicodeRange + ")" : fontInfo.name + " (" + fontInfo.style + ", " + stringifyFontWeight(fontInfo.weight) + ", " + fontInfo.unicodeRange + ")";
         break;
     case /* Subtitles */1 :
         tmp = String(media._0) + " phrases";
@@ -147,6 +192,7 @@ var make = React.memo((function (Props) {
 
 export {
   LoadedMediaIcon ,
+  stringifyFontWeight ,
   LoadedMedia ,
   Loading ,
   memo ,

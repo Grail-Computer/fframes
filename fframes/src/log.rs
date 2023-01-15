@@ -11,12 +11,12 @@ pub mod log {
     #[macro_export]
     macro_rules! log {
     ( $( $t:tt )* ) => {
-
-        fframes::log(&format_args!($($t)*).to_string())
+        $crate::log(&format_args!($($t)*).to_string())
     }
 }
 }
 
+#[allow(clippy::module_inception)]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod log {
     #[macro_export]

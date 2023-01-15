@@ -15,7 +15,5 @@ fframes = { path = "../fframes" }
 lazy_static = "1.4.0"
 console_error_panic_hook = "0.1.6"
 wasm-bindgen-futures= "0.4.28"
-serde = { version = "1.0", features = ["derive"] }
 wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"] }
 js-sys = "0.3.55"
-ttf-parser = "0.15.2"

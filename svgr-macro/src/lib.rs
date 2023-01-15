@@ -6,7 +6,9 @@ mod parser;
 mod validate_svg;
 
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
+use syn::Ident;
 
 use syn::{
     parse::{ParseStream, Parser as _},
@@ -32,9 +34,17 @@ fn parse(tokens: proc_macro::TokenStream) -> Result<Vec<Node>> {
 
 #[proc_macro]
 pub fn svgr(tokens: TokenStream) -> TokenStream {
+    let fframes_crate_ident = match proc_macro_crate::crate_name("fframes")
+        .expect("fframes crate must be present in Cargo.toml")
+    {
+        proc_macro_crate::FoundCrate::Itself => Ident::new("crate", Span::call_site()),
+        proc_macro_crate::FoundCrate::Name(name) => Ident::new(&name, Span::call_site()),
+    };
+
     match parse(tokens) {
         Ok(nodes) => {
-            let (html_string, values, animations) = prepare_svg_nodes_for_format_statement(nodes);
+            let (html_string, values, animations) =
+                prepare_svg_nodes_for_format_statement(nodes, &fframes_crate_ident);
 
             quote! {
             {
@@ -43,7 +53,7 @@ pub fn svgr(tokens: TokenStream) -> TokenStream {
                 }
 
                 #[allow(unused_braces)]
-                fframes::Svgr {
+                #fframes_crate_ident::Svgr {
                     value: format!(#html_string, #(#values),*)
                 }
             }

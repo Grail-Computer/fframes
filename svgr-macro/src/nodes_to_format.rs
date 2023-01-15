@@ -7,6 +7,7 @@ use syn::{
 
 pub(crate) fn prepare_svg_nodes_for_format_statement(
     nodes: Vec<Node>,
+    fframes_crate_ident: &syn::Ident
 ) -> (String, Vec<TokenStream>, Vec<TokenStream>) {
     let mut out = String::new();
     let mut values: Vec<TokenStream> = vec![];
@@ -20,7 +21,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
 
                 // attributes
                 let (svg_string, attribute_values, attribute_animations) =
-                    prepare_svg_nodes_for_format_statement(node.attributes);
+                    prepare_svg_nodes_for_format_statement(node.attributes, fframes_crate_ident);
                 out.push_str(&svg_string);
                 values.extend(attribute_values);
                 animations.extend(attribute_animations);
@@ -28,7 +29,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
 
                 // children
                 let (svg_string, children_values, child_animations) =
-                    prepare_svg_nodes_for_format_statement(node.children);
+                    prepare_svg_nodes_for_format_statement(node.children, fframes_crate_ident);
 
                 out.push_str(&svg_string);
                 values.extend(children_values);
@@ -51,7 +52,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                 out.push_str("{}");
                 let value = node.value.unwrap();
                 let quote = quote! {
-                    fframes::Svgr::from(#value)
+                    #fframes_crate_ident::Svgr::from(#value)
                 };
 
                 values.push(quote)
@@ -132,7 +133,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                             match first_animation_value {
                                 Some(proc_macro2::TokenTree::Punct(val)) if val.as_char() == '-' => quote! { f32 },
                                 Some(proc_macro2::TokenTree::Literal(_)) => quote! { f32 },
-                                Some(proc_macro2::TokenTree::Ident(_)) => quote! { fframes::Color },
+                                Some(proc_macro2::TokenTree::Ident(_)) => quote! { #fframes_crate_ident::Color },
                                 _ => panic!("Can not infer the type of animation value. Did you set something else than a f32 or fframes::Color as the animation value? {:?}", first_animation_value),
                             }
                         }
@@ -140,7 +141,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                     };
 
                     animations.push(quote! {
-                        static ref #identifier: fframes::animation::SteppedAnimation<#animation_type> = #macro_call;
+                        static ref #identifier: #fframes_crate_ident::animation::SteppedAnimation<#animation_type> = #macro_call;
                     });
                 }
 

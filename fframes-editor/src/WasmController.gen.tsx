@@ -32,6 +32,13 @@ export type videoMeta = {
 export type VideoMeta = videoMeta;
 
 // tslint:disable-next-line:interface-over-type-literal
+export type fontInfo = {
+  readonly name: ReScriptJs_Js_Nullable_t<ReScriptJs_Js_Uint8Array_t>; 
+  readonly weight: number; 
+  readonly style: string
+};
+
+// tslint:disable-next-line:interface-over-type-literal
 export type t = {
   readonly add_audio_source: (_1:string, _2:ReScriptJs_Js_Int16Array_t) => void; 
   readonly add_image_source: (_1:string, _2:string, _3:ReScriptJs_Js_Nullable_t<string>) => void; 
@@ -40,6 +47,6 @@ export type t = {
   readonly prepare: () => ReScriptJs_Js_Promise_t<videoMeta>; 
   readonly render_frame: (_1:ReScriptJs_Js_BigInt_t) => string; 
   readonly render_preview_frame: (_1:ReScriptJs_Js_BigInt_t) => string; 
-  readonly get_font_file_family: (_1:ReScriptJs_Js_Uint8Array_t) => ReScriptJs_Js_Nullable_t<ReScriptJs_Js_Uint8Array_t>
+  readonly ingest_font: (_1:ReScriptJs_Js_Uint8Array_t) => fontInfo
 };
 export type WasmController = t;

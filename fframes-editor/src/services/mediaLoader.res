@@ -15,9 +15,16 @@ type imageInfo = {
   height: int,
 }
 
+type fontInfo = { 
+  name: string,
+  style: string,
+  weight: int,
+  unicodeRange: string,
+}
+
 @genType
 type processedMedia =
-  | Font(string)
+  | Font(fontInfo)
   | Subtitles(int)
   | Image(imageInfo)
   | Audio(audioInfo)

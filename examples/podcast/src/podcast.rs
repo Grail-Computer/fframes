@@ -24,7 +24,6 @@ impl Video for PodcastVideo {
     fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         let goose_vis = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             smooth_level: 2,
-            ctx,
             audio: ctx.get_audio_data(self.goose_audio),
             sample_size: audio_data::SampleSize::S32,
             window: None,
@@ -32,14 +31,13 @@ impl Video for PodcastVideo {
 
         let duck_vis = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             smooth_level: 2,
-            ctx,
             audio: ctx.get_audio_data(self.duck_audio),
             sample_size: audio_data::SampleSize::S32,
             window: None,
         });
+
         let guest_vis = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             smooth_level: 2,
-            ctx,
             audio: ctx.get_audio_data(self.guest_audio),
             sample_size: audio_data::SampleSize::S32,
             window: None,

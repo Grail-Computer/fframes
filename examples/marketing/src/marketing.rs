@@ -235,7 +235,6 @@ impl Video for MarketingVideo {
         let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             audio: ctx.get_audio_data(self.audio_track),
             sample_size: audio_data::SampleSize::S16,
-            ctx,
             smooth_level: 3,
             window: Some(fframes::WindowFunction::Hamming),
         });
