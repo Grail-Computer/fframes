@@ -48,7 +48,7 @@ impl Video for LowPolyVideo {
               fill="#000"
             />
 
-            {ctx.render_scenes(frame)}
+            {ctx.render_scenes(&frame)}
           </svg>
         )
     }

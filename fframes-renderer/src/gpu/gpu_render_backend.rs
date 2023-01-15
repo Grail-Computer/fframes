@@ -1,4 +1,7 @@
-use std::{num::NonZeroU32, sync::Arc};
+use std::{
+    num::{NonZeroU32, NonZeroUsize},
+    sync::Arc,
+};
 
 use crate::{
     concatenator::fill_audio_stream,
@@ -7,14 +10,16 @@ use crate::{
     render_backend::FFramesRenderBackend,
     renderer_error::FFramesResult,
 };
-use fframes::{video::Video, ResolvedAudioMap};
+use fframes::{video::Video, BreaksLruCache, ResolvedAudioMap};
 use futures::executor::block_on;
 use wgpu::{include_wgsl, util::DeviceExt};
 
 use super::tesselator::{tesselate_svg, GpuGlobals, GpuPrimitive, GpuTransform, GpuVertex};
 
 #[derive(Default)]
-pub struct GpuRenderingBackend {}
+pub struct GpuRenderingBackend {
+    pub text_cache_capacity: usize,
+}
 
 impl FFramesRenderBackend for GpuRenderingBackend {
     fn render<'a, TVideo: Video + Sync + Sized>(
@@ -85,6 +90,14 @@ impl FFramesRenderBackend for GpuRenderingBackend {
         });
 
         let msaa_texture_view = msaa_texture.create_view(&Default::default());
+        let text_cache = if self.text_cache_capacity == 0 {
+            None
+        } else {
+            Some(BreaksLruCache::new(
+                NonZeroUsize::new(self.text_cache_capacity).unwrap(),
+            ))
+        };
+
         unsafe {
             Encoder::with_output(
                 TVideo::WIDTH as i32,
@@ -98,17 +111,17 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                     let mut frame = EncoderFrame::make(&video_encoder.video_stream);
 
                     for fr in 0..duration_in_frames {
-                        // let svg = video
-                        //     .render_frame(
-                        //         frame::Frame {
-                        //             fps: TVideo::FPS,
-                        //             index: fr,
-                        //             global_index: fr,
-                        //         },
-                        //         &ctx,
-                        //     )
-                        //     .into_string();
-                        let svg = "".to_owned();
+                        let svg = video
+                            .render_frame(
+                                fframes::Frame {
+                                    fps: TVideo::FPS,
+                                    index: fr,
+                                    global_index: fr,
+                                    breaks_lru_cache: text_cache.clone(),
+                                },
+                                &ctx,
+                            )
+                            .into_string();
 
                         let rtree = usvgr::Tree::from_str(&svg, usvg_options).unwrap();
                         let (mesh, transforms, primitives) = tesselate_svg(rtree);

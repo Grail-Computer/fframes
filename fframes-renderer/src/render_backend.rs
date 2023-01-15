@@ -47,8 +47,12 @@ pub enum RenderBackendVariant {
 impl RenderBackendVariant {
     pub fn make_backend(&self) -> impl FFramesRenderBackend {
         match self {
-            RenderBackendVariant::Gpu => GpuRenderingBackend {},
-            RenderBackendVariant::Cpu => GpuRenderingBackend {},
+            RenderBackendVariant::Gpu => GpuRenderingBackend {
+                ..Default::default()
+            },
+            RenderBackendVariant::Cpu => GpuRenderingBackend {
+                ..Default::default()
+            },
         }
     }
 }

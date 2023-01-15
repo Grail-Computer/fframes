@@ -55,7 +55,7 @@ impl<'a: 'b, 'b> FFramesContext<'a> {
         }
     }
 
-    pub fn render_scenes(&self, global_frame: Frame) -> Svgr {
+    pub fn render_scenes(&self, global_frame: &Frame) -> Svgr {
         if let Some(scenes) = self.scenes.as_ref() {
             Svgr::from_iter(scenes.0.iter().filter_map(|(range, scene)| {
                 if range.contains(&global_frame.index) {

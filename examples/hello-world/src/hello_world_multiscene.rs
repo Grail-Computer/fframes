@@ -58,12 +58,6 @@ impl Video for HelloWorldMultiSceneVideo {
     fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         const BACKGROUND_EASING: fframes::Easing = fframes::Easing::Linear(5.);
 
-        let label = format!(
-            "This frame index: {}, second: {:.2}",
-            frame.index,
-            frame.get_current_second()
-        );
-
         fframes::svgr!(
            <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -88,10 +82,14 @@ impl Video for HelloWorldMultiSceneVideo {
               }
             />
 
-            {ctx.render_scenes(frame)}
+            {ctx.render_scenes(&frame)}
 
             <text font-weight="500" font-family="JetBrains Mono" x="100" y="440" font-size="74" fill="#4b5563">
-              {label}
+              {format!(
+                  "This frame index: {}, second: {:.2}",
+                  frame.index,
+                  frame.get_current_second()
+              )}
             </text>
           </svg>
         )

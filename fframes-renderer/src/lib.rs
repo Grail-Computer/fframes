@@ -47,6 +47,7 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
         image_data,
         font_family: options.default_font.to_string(),
         fontdb: font_db,
+        keep_named_groups: true,
         ..Default::default()
     };
 
