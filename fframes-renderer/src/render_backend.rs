@@ -200,8 +200,16 @@ impl FFramesRenderBackend for CpuRenderingBackend {
 
                                     logger.log_frame(index, thread_number, &svg);
                                     if svg != last_svg {
+                                        let start = std::time::Instant::now();
                                         let rtree =
                                             usvgr::Tree::from_str(&svg, usvg_options).unwrap();
+                                        let duration = start.elapsed();
+
+                                        println!(
+                                            "Time elapsed in expensive_function() is: {:?}",
+                                            duration
+                                        );
+                                        
                                         svgr::render(
                                             &rtree,
                                             usvgr::FitTo::Original,

@@ -85,11 +85,14 @@ pub(crate) fn load_media_from_folder(
                     "ttf" | "ttc" | "otf" | "otc" => {
                         if let Some(font_path) = path.to_str() {
                             let data = std::fs::read(font_path)?;
+
                             fontdb.lock()?.load_font_data(data);
                         }
                     }
                     "jpg" | "jpeg" | "png" => {
+                        println!("Loading font: {}", path.to_string_lossy());
                         let data = fs::read(&path)?;
+                            println!("Loaded font: {}", path.to_string_lossy());
                         let buffer = image::load_from_memory(data.as_slice())
                             .map_err(|e| FFramesError::ImageError((filename.to_owned(), e)))?;
 
