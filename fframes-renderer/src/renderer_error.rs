@@ -1,5 +1,5 @@
 use colored::Colorize;
-use ffmpeg_next::ffi::AVPixelFormat;
+use ffmpeg_sys_fframes::AVPixelFormat;
 use std::{error::Error, fmt, str::Utf8Error, sync::PoisonError};
 
 /// Thread or Chunk level error which can happen during parallelized rendering

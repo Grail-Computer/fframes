@@ -428,12 +428,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a80971eee67be0079a1c8890bde68226fe9bd0441740fd6ddd0cee131486b321"
 dependencies = [
  "bitflags",
- "ffmpeg-sys-next",
+ "ffmpeg-sys-fframes",
  "libc",
 ]
 
 [[package]]
-name = "ffmpeg-sys-next"
+name = "ffmpeg-sys-fframes"
 version = "5.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d780b36e092254367e2f1f21191992735c8e23f31a5a5a8678db3a79f775021f"

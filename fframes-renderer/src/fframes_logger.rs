@@ -1,11 +1,10 @@
+use crate::renderer_error::{FFramesRendererError, FFramesRendererResult};
 use colored::*;
 use core::fmt::Debug;
-use ffmpeg_next::ffi::AV_LOG_FATAL;
+use ffmpeg_sys_fframes::AV_LOG_FATAL;
 use indicatif::ProgressBar;
 use once_cell::sync::OnceCell;
 use std::{ffi::c_int, path::Path, sync::Arc};
-
-use crate::renderer_error::{FFramesRendererError, FFramesRendererResult};
 
 #[allow(unused_variables)]
 pub trait FFramesLogger: Sync + Send {

@@ -17,7 +17,7 @@ extern "C" fn fframes_render(slug: *const c_char, to: *const c_char, tmp_dir: *c
     render(
         &HelloWorldVideo {
             media: &media,
-            slug: &slug,
+            slug,
         },
         to,
         RenderOptions {

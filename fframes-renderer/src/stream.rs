@@ -3,12 +3,13 @@ use crate::ffmpeg_action;
 use crate::ffmpeg_loggable_action;
 use crate::renderer_error::{RenderEncodingError, RenderEncodingResult};
 use crate::EncoderOptions;
-use ffmpeg_next::sys::*;
+use ffmpeg_sys_fframes::*;
 use std::ffi::CStr;
 use std::ffi::CString;
 #[derive(Clone, Copy)]
 pub enum StreamVariant {
     Video,
+    #[allow(dead_code)]
     Audio(*mut SwrContext),
 }
 

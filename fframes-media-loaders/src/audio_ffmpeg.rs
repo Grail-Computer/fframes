@@ -1,7 +1,7 @@
 // Imports are defined here
 use crate::error::Result;
 use crate::FFramesMediaError;
-use ffmpeg_next::sys::*;
+use ffmpeg_sys_fframes::*;
 use std::ffi::CString;
 use std::io::{self, Cursor, Read};
 use std::ptr;

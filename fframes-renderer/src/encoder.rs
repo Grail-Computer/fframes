@@ -1,6 +1,6 @@
 use crate::{encoder_frame::EncoderFrame, renderer_error::RenderEncodingResult};
-use ffmpeg_next::sys::*;
-pub use ffmpeg_next::sys::{AVPixelFormat, AVSampleFormat};
+use ffmpeg_sys_fframes::*;
+pub use ffmpeg_sys_fframes::{AVPixelFormat, AVSampleFormat};
 use std::{ffi::CString, os::raw::c_char, path::PathBuf, sync::Arc};
 
 use crate::{
@@ -81,7 +81,8 @@ pub struct EncoderOptions<'a> {
     ///
     /// ## Safety
     /// ### Libav can have segmentation fault if some options are invalid or the value is not correct.
-    /// ### So it is very important to validate the function parameters before usage, cause they won't be cached by fframes
+    /// ### So it is very important to validate the function parameters before usage
+    /// ### because segfaults **won't be caught** by fframes.
     pub codec_params: Option<&'a [(&'a str, &'a str)]>,
 }
 

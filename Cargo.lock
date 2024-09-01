@@ -781,21 +781,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "ffmpeg-next"
-version = "7.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19a340e3d664ad5f530147cd6d4a86ece739a829fe2d81c369389ef903bd96f6"
-dependencies = [
- "bitflags 2.5.0",
- "ffmpeg-sys-next",
- "libc",
-]
-
-[[package]]
-name = "ffmpeg-sys-next"
+name = "ffmpeg-sys-fframes"
 version = "7.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db1b7546e70609ead8c06b2b4c618a1ba352364675f81608f431dd4f321fe3f1"
+checksum = "29df4bcf79578436661b3342d587c17b9bd1d77619aa9ddd90afb0c105603e13"
 dependencies = [
  "bindgen",
  "cc",
@@ -861,9 +850,8 @@ name = "fframes-media-loaders"
 version = "1.0.0-beta.1"
 dependencies = [
  "bytemuck",
- "ffmpeg-next",
+ "ffmpeg-sys-fframes",
  "image 0.24.6",
- "minimp3",
  "quote",
  "ttf-parser 0.19.1",
  "usvgr",
@@ -877,7 +865,7 @@ dependencies = [
  "bytemuck",
  "cc",
  "colored",
- "ffmpeg-next",
+ "ffmpeg-sys-fframes",
  "fframes",
  "futures",
  "image 0.25.0",
@@ -1666,15 +1654,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mach"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1764,26 +1743,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "minimp3"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "985438f75febf74c392071a975a29641b420dd84431135a6e6db721de4b74372"
-dependencies = [
- "minimp3-sys",
- "slice-deque",
- "thiserror",
-]
-
-[[package]]
-name = "minimp3-sys"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e21c73734c69dc95696c9ed8926a2b393171d98b3f5f5935686a26a487ab9b90"
-dependencies = [
- "cc",
-]
 
 [[package]]
 name = "miniz_oxide"
@@ -2620,17 +2579,6 @@ name = "slab"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb703cfe953bccee95685111adeedb76fabe4e97549a58d16f03ea7b9367bb32"
-
-[[package]]
-name = "slice-deque"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31ef6ee280cdefba6d2d0b4b78a84a1c1a3f3a4cec98c2d4231c8bc225de0f25"
-dependencies = [
- "libc",
- "mach",
- "winapi",
-]
 
 [[package]]
 name = "slotmap"
