@@ -1,5 +1,4 @@
-#!/bin/bash
-set -euf -o pipefail
+#!/usr/bin/env bash -euo pipefail
 
 VERSION="$1"
 

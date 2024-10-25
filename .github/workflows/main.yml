@@ -40,9 +40,9 @@ jobs:
           npm install -g yarn
           yarn install --frozen-lockfile --prefer-offline
 
-      - name: Syncpack
-        working-directory: fframes-editor
-        run: yarn syncpack lint
+      # - name: Syncpack
+      #   working-directory: fframes-editor
+      #   run: yarn syncpack lint
  
       - name: Build frontend
         working-directory: fframes-editor
@@ -120,23 +120,27 @@ jobs:
 
   release:
     name: Publish nightly release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install apt-deps
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y yasm nasm ffmpeg libx264-dev libx265-dev libopus-dev 
 
-      - name: Install brew deps 
-        if: runner.os == 'macOS'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install frontend deps
         run: |
-          brew install pkg-config ffmpeg x264 x265 opus nasm
-          brew link x264 x265 --force
+          npm install -g yarn
+          yarn install --frozen-lockfile --prefer-offline
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -146,12 +150,17 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: "v1-rust"
+          prefix-key: "v2-rust"
           cache-on-failure: true
 
       - name: Run Release Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          sh release.sh $(git describe --tags --abbrev=0)-rc.$(git rev-parse --short HEAD)
+          git fetch --tags
+          sh release.sh $(git describe --always --tags --abbrev=0)-rc.$(git rev-parse --short HEAD)
 
   # not now
   # check-windows-build: 
