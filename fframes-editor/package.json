@@ -1,5 +1,5 @@
 {
-  "name": "fframes-editor",
+  "name": "@fframes/editor",
   "version": "0.0.1",
   "keywords": [
     "rescript"
@@ -11,6 +11,7 @@
   "scripts": {
     "build": "yarn rescript:build && yarn bundle:dev",
     "bundle:dev": "node esbuild.mjs && tailwindcss -o tw.css",
+    "bundle:prod": "node esbuild.mjs -r && tailwindcss -m -o tw.css",
     "dev": "concurrently --raw 'rescript build -w' 'tailwindcss -o tw.css --watch' 'node esbuild.mjs --watch'",
     "postinstall": "ln -s -f ./src/shims ./src/services/shims",
     "rescript:build": "rescript build -with-deps",
@@ -36,6 +37,7 @@
     "use-debounce": "^8.0.1"
   },
   "devDependencies": {
+    "@types/node": "^22.7.9",
     "concurrently": "^7.3.0",
     "esbuild": "^0.14.3"
   }
