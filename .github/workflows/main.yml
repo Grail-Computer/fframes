@@ -162,7 +162,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           git fetch --tags
-          bash release.sh $(git describe --tags $(git rev-list --tags --max-count=1))-rc.$(git rev-parse --short HEAD)
+          bash release.sh $(git describe --tags $(git rev-list --tags --max-count=1))+$(git rev-parse --short HEAD)
 
   # not now
   # check-windows-build: 
