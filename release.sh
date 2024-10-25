@@ -3,24 +3,23 @@ set -euf -o pipefail
 
 VERSION="$1"
 
-if ! git diff --quiet; then
-  echo "Error: There are unstaged changes in the repository."
-  exit 1
-fi
+# if ! git diff --quiet; then
+#   echo "Error: There are unstaged changes in the repository."
+#   exit 1
+# fi
 
 cargo install cargo-edit
 cargo set-version "$VERSION"
 
 cd fframes-editor
-npm version "$VERSION"
-yarn bundle:prod
-yarn publish
+yarn build:prod
+yarn publish --no-git-tag-version --access public --new-version "$VERSION"
 
-cd webvtt-parser && cargo publish
-cd ../svgr-macro && cargo publish
-cd ../fframes-media-loaders && cargo publish
-cd ../media-dir-macro && cargo publish
-cd ../fframes && cargo publish
-cd ../fframes-ediotr-controller && cargo publish
-cd ../fframes-renderer && cargo publish
+cd ../webvtt-parser && cargo publish --allow-dirty
+cd ../svgr-macro && cargo publish --allow-dirty
+cd ../fframes-media-loaders && cargo publish --allow-dirty
+cd ../media-dir-macro && cargo publish --allow-dirty
+cd ../fframes && cargo publish --allow-dirty
+cd ../fframes-ediotr-controller && cargo publish --allow-dirty
+cd ../fframes-renderer && cargo publish --allow-dirty
 
