@@ -1,11 +1,13 @@
-#!/usr/bin/env bash -euo pipefail
+#!/usr/bin/env bash 
+set -euo pipefail
 
 VERSION="$1"
+echo "Releasing version $VERSION"
 
-# if ! git diff --quiet; then
-#   echo "Error: There are unstaged changes in the repository."
-#   exit 1
-# fi
+if ! git diff --quiet; then
+  echo "Error: There are unstaged changes in the repository."
+  exit 1
+fi
 
 cargo install cargo-edit
 cargo set-version "$VERSION"

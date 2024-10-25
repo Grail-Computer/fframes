@@ -125,6 +125,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install apt-deps
         run: |
@@ -160,7 +162,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           git fetch --tags
-          sh release.sh $(git describe --always --tags --abbrev=0)-rc.$(git rev-parse --short HEAD)
+          bash release.sh $(git describe --tags $(git rev-list --tags --max-count=1))-rc.$(git rev-parse --short HEAD)
 
   # not now
   # check-windows-build: 
