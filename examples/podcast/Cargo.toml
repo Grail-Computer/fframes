@@ -12,7 +12,7 @@ fframes_renderer = { workspace = true, default-features = false, features = [
 	"h264",
 	"libav-agree-gpl",
 ] }
-fframes_skia_renderer = { workspace = true, features = ["metal"] }
+fframes_skia_renderer = { workspace = true, features = ["vulkan"] }
 
 [features]
 default = ["renderer"]
