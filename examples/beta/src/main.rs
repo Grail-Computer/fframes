@@ -1,6 +1,7 @@
 use beta_example::{BetaExamples, BetaVideo};
 use fframes::{CombinedMediaProvider, Video, lazy_static::lazy_static};
 use fframes::{MediaProvider, StaticMediaProvider};
+use fframes_renderer::cpu::CpuRenderingBackend;
 use fframes_renderer::{EncoderOptions, RenderOptions, fframes_logger, render};
 use fframes_skia_renderer::vulkan::SkiaVulkanCtx;
 use fframes_skia_renderer::{SkiaFFramesRenderer, SkiaPipelineConfig};
@@ -54,14 +55,18 @@ fn main() {
                 }),
             },
         },
-        SkiaFFramesRenderer::new_vulkan(
-            &vulkan_ctx,
-            SkiaPipelineConfig {
-                buffer_queue_size: 10,
-                ..Default::default()
-            },
-        )
-        .expect("Failed to create metal renderer"),
+        CpuRenderingBackend {
+            cache_capacity: 100,
+            ..Default::default()
+        },
+        // SkiaFFramesRenderer::new_vulkan(
+        //     &vulkan_ctx,
+        //     SkiaPipelineConfig {
+        //         buffer_queue_size: 10,
+        //         ..Default::default()
+        //     },
+        // )
+        // .expect("Failed to create metal renderer"),
         &RenderOptions {
             media: Some(&media),
             load_system_fonts: true,
