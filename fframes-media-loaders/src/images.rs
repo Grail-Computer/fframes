@@ -43,7 +43,13 @@ pub struct ImageData {
 impl ImageData {
     #[cfg(target_arch = "wasm32")]
     pub fn href(&self) -> &str {
-        &self.base64_data.as_str()
+        crate::IS_PREVIEW_RENDERING.with(|force_base64| {
+            if force_base64.load(std::sync::atomic::Ordering::Relaxed) {
+                self.base64_data.as_str()
+            } else {
+                &self.filename
+            }
+        })
     }
 
     #[cfg(not(target_arch = "wasm32"))]

@@ -3,7 +3,7 @@
 use conference_splash_screen::{ConferenceMedia, ConferenceVideo, SpeakerScene, SponsorScene};
 use fframes_editor_controller::{
     prelude::{lazy_static, *},
-    setup_wasm_editor,
+    setup_wasm_bridge,
 };
 
 lazy_static! {

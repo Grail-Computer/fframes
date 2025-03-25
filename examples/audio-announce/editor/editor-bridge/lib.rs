@@ -3,7 +3,7 @@
 use audio_announce_example::{AudioAnnounce, AudioAnnounceMedia};
 use fframes_editor_controller::{
     prelude::{lazy_static, *},
-    setup_wasm_editor,
+    setup_wasm_bridge,
 };
 
 lazy_static! {

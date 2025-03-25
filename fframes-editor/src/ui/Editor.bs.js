@@ -62,10 +62,10 @@ function Editor(Props) {
                   className: "overflow-auto flex justify-center w-full"
                 }, Utils.$$Option.unwrapOr(Belt_Option.map(layout.mediaControls, (function (size) {
                             return React.createElement("div", {
-                                        className: "col-span-2 h-full overflow-auto flex flex-col p-4 border-r border-gray-800",
+                                        className: "col-span-2 h-full overflow-auto flex flex-col border-r border-gray-800",
                                         style: UseEditorLayout.sizeToStyle(size)
                                       }, React.createElement("div", {
-                                            className: "flex items-center justify-between mb-6 pt-1 gap-2"
+                                            className: "flex items-center p-4 border-b border-gray-700 justify-between mb-6 gap-2 sticky top-0 bg-gray-900/90 backdrop-blur-lg"
                                           }, React.createElement("h1", {
                                                 className: "text-3xl mt-px font-medium text-white grow-0 truncate"
                                               }, videoTitle), React.createElement("div", {
@@ -102,9 +102,11 @@ function Editor(Props) {
                                                       }, "Grid view"), React.createElement(Icons.GridViewIcon.make, {
                                                         color: "currentColor",
                                                         className: "h-5 w-5"
-                                                      })))), React.createElement($$MediaList.make, {
-                                            variant: listVariant
-                                          }));
+                                                      })))), React.createElement("div", {
+                                            className: "px-4 pb-4"
+                                          }, React.createElement($$MediaList.make, {
+                                                variant: listVariant
+                                              })));
                           })), null), React.createElement("div", {
                       ref: previewRef,
                       className: "bg-black",

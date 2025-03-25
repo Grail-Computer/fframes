@@ -140,24 +140,40 @@ export const resolveSubtitles: MediaResolver = async ({
 // We load image through this very unfamiliar way because
 // 1. It is fast enough and caches image in browser memory
 // 2. We need to get image natural width and height which can be done only through encoding.
-const loadImage = (url: string) =>
-    new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.addEventListener("load", () => resolve(img));
-        img.addEventListener("error", (err) => reject(err));
-        img.src = url;
-    });
+const loadImage = (url: string, sizeLimit: number) => {
+    return Promise.all([
+        fetch(url)
+            .then(response => response.blob())
+            .then(imageBlob => {
+                console.log(imageBlob.size, sizeLimit)
+                if (imageBlob.size > sizeLimit) {
+                    return Promise.resolve(null)
+                }
 
-const imageToBase64 = (image: HTMLImageElement) => {
-    let canvas = document.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height;
+                return new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (typeof e.target?.result !== "string") {
+                            return reject("Failed to read image as data url");
+                        }
 
-    let ctx = canvas.getContext("2d");
-    ctx?.drawImage(image, 0, 0);
+                        return resolve(e.target.result);
+                    }
+                    reader.onerror = (e) => {
+                        return reject(e);
+                    }
 
-    return canvas.toDataURL("image/png");
-};
+                    reader.readAsDataURL(imageBlob);
+                })
+            }),
+        new Promise<{ width: number, height: number }>((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            image.onerror = reject;
+            image.src = url;
+        })
+    ])
+}
 
 export const resolveImage: MediaResolver = async ({
     name,
@@ -165,26 +181,21 @@ export const resolveImage: MediaResolver = async ({
     wasmController,
     wasmControllerOptions,
 }) => {
-    const image = await loadImage(url);
-    const base64 =
-        image.naturalHeight * image.naturalWidth >
-            wasmControllerOptions.dynamicImageLengthLimit
-            ? null
-            : imageToBase64(image);
+    const [image, { width, height }] = await loadImage(url, wasmControllerOptions.dynamicImageSizeLimitBytes);
 
     wasmController.add_image_source(
         name,
         url,
-        image.naturalWidth,
-        image.naturalHeight,
-        base64 ?? undefined,
+        width,
+        height,
+        image ?? undefined,
     );
 
     return resolveMedia(name, {
         tag: "Image",
         value: {
-            width: image.naturalWidth,
-            height: image.naturalHeight,
+            width,
+            height,
             src: url,
         },
     });

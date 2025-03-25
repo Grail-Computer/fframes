@@ -25,31 +25,29 @@ export function renderEditor(
     mediaListLayout: "fromAspectRatio",
     loop: false,
     rewindStepInSeconds: 2,
-    dynamicImageLengthLimit: 2073600, // full-hd
+    dynamicImageSizeLimitBytes: 512 * 1024,
     volumeStepFrom0To100: 20,
     ...partialOptions,
   };
 
-  wasmController.default().then(() => {
-    Promise.all([
-      processMedia({
-        wasmController,
-        options,
-        dynamicImports: partialOptions.dynamicMediaFolder,
-      }),
-      wasmController.prepare(options.lockFps).then((videoMeta) => {
-        root.render(
-          <EditorContext
-            options={options}
-            wasmController={wasmController}
-            videoMeta={videoMeta}
-          >
-            <Editor />
-          </EditorContext>
-        );
-      }),
-    ]);
-  });
+  Promise.all([
+    processMedia({
+      wasmController,
+      options,
+      dynamicImports: partialOptions.dynamicMediaFolder,
+    }),
+    wasmController.prepare(options.lockFps).then((videoMeta) => {
+      root.render(
+        <EditorContext
+          options={options}
+          wasmController={wasmController}
+          videoMeta={videoMeta}
+        >
+          <Editor />
+        </EditorContext>
+      );
+    }),
+  ]);
 
   document.addEventListener(
     "focus",

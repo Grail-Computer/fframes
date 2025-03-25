@@ -90,7 +90,7 @@ function resolveMedia(name, media) {
 }
 
 function populateInlinedMedia(wasmController, options) {
-  Curry._1(wasmController.populate_static_fonts_db_with_static_fonts, undefined);
+  wasmController.populate_static_fonts_db_with_static_fonts();
   var fonts_loader = Curry._1(resolveStaticFonts, {
         wasmController: wasmController,
         wasmControllerOptions: options

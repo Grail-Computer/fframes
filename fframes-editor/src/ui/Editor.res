@@ -59,8 +59,9 @@ let make = () => {
         ->Belt.Option.map(size =>
           <div
             style={size->UseEditorLayout.sizeToStyle}
-            className="col-span-2 h-full overflow-auto flex flex-col p-4 border-r border-gray-800">
-            <div className="flex items-center justify-between mb-6 pt-1 gap-2">
+            className="col-span-2 h-full overflow-auto flex flex-col border-r border-gray-800">
+            <div
+              className="flex items-center p-4 border-b border-gray-700 justify-between mb-6 gap-2 sticky top-0 bg-gray-900/90 backdrop-blur-lg">
               <h1 className="text-3xl mt-px font-medium text-white grow-0 truncate">
                 {videoTitle}
               </h1>
@@ -93,7 +94,7 @@ let make = () => {
                 </button>
               </div>
             </div>
-            <MediaList variant=listVariant />
+            <div className="px-4 pb-4"> <MediaList variant=listVariant /> </div>
           </div>
         )
         ->Utils.Option.unwrapOr(React.null)

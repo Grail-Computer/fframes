@@ -1,5 +1,5 @@
 #![cfg(target_arch = "wasm32")]
-use fframes_editor_controller::{prelude::*, setup_wasm_editor};
+use fframes_editor_controller::{prelude::*, setup_wasm_bridge};
 use teej_podcast_example::{Chapter, TeejPodcast};
 
 setup_wasm_editor!(

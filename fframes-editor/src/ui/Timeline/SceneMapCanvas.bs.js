@@ -91,7 +91,7 @@ function renderMainScene(ctx, size, editorContext) {
   var maxFramesInScene = Caml_int32.div(size.maxSceneWidth | 0, width);
   var framesBreak = Caml_int32.div(editorContext.videoMeta.durationInFrames, maxFramesInScene);
   Belt_Range.forEach(0, maxFramesInScene, (function (i) {
-          var svg = Curry._1(editorContext.wasmController.render_preview_frame, BigInt(Math.imul(i, framesBreak)));
+          var svg = editorContext.wasmController.render_preview_frame(BigInt(Math.imul(i, framesBreak)));
           var image = new Image(width, 120);
           image.src = "data:image/svg+xml;base64,".concat(window.btoa(svg));
           image.onload = (function (param) {

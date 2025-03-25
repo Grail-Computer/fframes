@@ -1,5 +1,5 @@
 #![cfg(target_arch = "wasm32")]
-use fframes_editor_controller::{prelude::*, setup_wasm_editor};
+use fframes_editor_controller::{prelude::*, setup_wasm_bridge};
 use low_poly_art_example::{owl, LowPolyMedia, LowPolyVideo};
 
 lazy_static! {

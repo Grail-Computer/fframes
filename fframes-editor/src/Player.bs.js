@@ -45,7 +45,7 @@ function MakePlayer(Wasm) {
         startPlayingFrame: initialFrame,
         playState: /* WaitingForAction */2,
         fpsLimit: Wasm.videoMeta.fps,
-        svg: Utils.$$Option.some(Curry._1(Wasm.controller.render_frame, BigInt(0))),
+        svg: Utils.$$Option.some(Wasm.controller.render_frame(BigInt(0))),
         volume: volume,
         magnet: savedMagnet
       }) : ({
@@ -170,7 +170,7 @@ function MakePlayer(Wasm) {
     var frame = action._0;
     if (frame >= Wasm.videoMeta.durationInFrames || frame < 0) {
       var frame$1 = Utils.$$Option.unwrapOr(state.magnet, 0);
-      var svg = Curry._1(Wasm.controller.render_frame, BigInt(frame$1));
+      var svg = Wasm.controller.render_frame(BigInt(frame$1));
       return {
               frame: frame$1,
               startPlayingFrame: frame$1,
@@ -182,7 +182,7 @@ function MakePlayer(Wasm) {
             };
     }
     var frame$2 = action._0;
-    var svg$1 = Curry._1(Wasm.controller.render_frame, BigInt(frame$2));
+    var svg$1 = Wasm.controller.render_frame(BigInt(frame$2));
     var tmp;
     tmp = typeof action === "number" || action.TAG !== /* Seek */0 ? state.startPlayingFrame : action._0;
     return {

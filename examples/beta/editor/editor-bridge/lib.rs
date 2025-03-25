@@ -1,6 +1,6 @@
 #![cfg(target_arch = "wasm32")]
 use beta_example::{BetaExamples, BetaVideo, IphoneScene};
-use fframes_editor_controller::{prelude::*, setup_wasm_editor};
+use fframes_editor_controller::{prelude::*, setup_wasm_bridge};
 use hello_world_example::{HelloWorldMedia, HelloWorldVideo};
 use marketing_example::{MarketingMedia, MarketingVideo};
 use podcast_example::PodcastVideo;

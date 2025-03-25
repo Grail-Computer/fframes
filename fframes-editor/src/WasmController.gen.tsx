@@ -33,7 +33,6 @@ export type mediaFolder = ReScriptJs_Js_Dict_t<mediaImport>;
 
 // tslint:disable-next-line:interface-over-type-literal
 export type options = {
-  readonly staticMediaFolder?: mediaFolder; 
   readonly dynamicMediaFolder?: mediaFolder; 
   readonly ignoreMediaRegex?: ReScriptJs_Js_RegExp_t; 
   readonly hideDock: boolean; 
@@ -44,7 +43,7 @@ export type options = {
   | "fromAspectRatio"
   | "grid"; 
   readonly rewindStepInSeconds: number; 
-  readonly dynamicImageLengthLimit: number; 
+  readonly dynamicImageSizeLimitBytes: number; 
   readonly volumeStepFrom0To100: number
 };
 export type EditorOptions = options;
@@ -71,9 +70,6 @@ export type fontInfo = {
 };
 
 // tslint:disable-next-line:interface-over-type-literal
-export type initOut = { readonly prepare: (_1:number, _2:number) => number };
-
-// tslint:disable-next-line:interface-over-type-literal
 export type staticFont = {
   readonly data: ReScriptJs_Js_Uint8Array_t; 
   readonly info: fontInfo; 
@@ -93,7 +89,6 @@ export type t = {
   readonly add_image_source: (_1:string, _2:string, _3:number, _4:number, _5:ReScriptJs_Js_Undefined_t<string>) => void; 
   readonly add_video_source_placeholder: (_1:string, _2:string, _3:number, _4:number, _5:number) => void; 
   readonly add_subtitles_source: (_1:string, _2:string) => number; 
-  readonly default: () => ReScriptJs_Js_Promise_t<initOut>; 
   readonly prepare: (_1:ReScriptJs_Js_Undefined_t<number>) => ReScriptJs_Js_Promise_t<videoMeta>; 
   readonly render_frame: (_1:ReScriptJs_Js_BigInt_t) => string; 
   readonly render_preview_frame: (_1:ReScriptJs_Js_BigInt_t) => string; 
