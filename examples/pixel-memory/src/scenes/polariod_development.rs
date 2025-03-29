@@ -5,6 +5,10 @@ use fframes::{
 };
 use rand::Rng;
 
+#[cfg(feature = "exif")]
+// optional feature to read EXIF data
+use rexif::parse_file;
+
 #[derive(Debug)]
 pub struct PolaroidDevelopment<'a> {
     duration: f32,
@@ -158,9 +162,32 @@ impl<'a> PolaroidDevelopment<'a> {
         let photo_count = rng.gen_range(4..=8);
         let photos = images.choose(photo_count);
 
-        // todo use real exif data
-        let captions = (0..photo_count)
-            .map(|_| rng.gen_range(2016..2025).to_string())
+        // Extract EXIF data for captions
+        let captions = photos
+            .iter()
+            .map(|_photo| {
+                #[cfg(feature = "exif")]
+                {
+                    match parse_file(_photo) {
+                        Ok(exif) => {
+                            for entry in &exif.entries {
+                                if entry.tag == rexif::ExifTag::DateTime {
+                                    // Extract the year from the DateTime value
+                                    if let Some(year) = entry.value_more_readable.split(':').next()
+                                    {
+                                        return year.to_string();
+                                    }
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Error parsing EXIF for {}: {}", _photo, e);
+                        }
+                    }
+                }
+                // Fallback to random year if EXIF is disabled or unavailable
+                rng.gen_range(2016..2025).to_string()
+            })
             .collect::<Vec<_>>();
 
         let base_duration = tempo * 4.0;

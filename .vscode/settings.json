@@ -1,12 +1,6 @@
 {
   "rust-analyzer.checkOnSave.allTargets": false,
-  "cSpell.words": [
-    "Animatable",
-    "avcodec",
-    "avio",
-    "fframes",
-    "Svgr"
-  ],
+  "cSpell.words": ["Animatable", "avcodec", "avio", "exif", "fframes", "Svgr"],
   "files.associations": {
     "*.prisma": "graphql",
     "pixdesc.h": "c",
@@ -20,5 +14,5 @@
     "locale": "c",
     "channel_layout.h": "c"
   },
-  "svg.preview.background": "editor",
+  "svg.preview.background": "editor"
 }

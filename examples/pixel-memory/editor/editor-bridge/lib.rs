@@ -4,7 +4,6 @@ use fframes_editor_controller::{
     prelude::{lazy_static, *},
     setup_wasm_editor,
 };
-use pixel_memory_example::rand::SeedableRng;
 use pixel_memory_example::{rand, PixelMedia, PixelVideo, RandomPhotos};
 
 lazy_static! {
