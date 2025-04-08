@@ -56,7 +56,7 @@ fn main() {
             },
         },
         CpuRenderingBackend {
-            cache_capacity: 100,
+            cache_capacity: 200,
             ..Default::default()
         },
         // SkiaFFramesRenderer::new_vulkan(
