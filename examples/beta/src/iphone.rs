@@ -103,10 +103,10 @@ impl Scene for IphoneScene {
                 <image
                     href={ctx.get_image("camera_ui.png").unwrap().href()}
                     width="370"
-                 height="819"
-                 rx="60"
-                 x="790"
-                 y="154"
+                    height="819"
+                    rx="60"
+                    x="790"
+                    y="154"
               />
 
               <image

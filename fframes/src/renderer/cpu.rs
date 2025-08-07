@@ -74,7 +74,6 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         let session = Uuid::new_v4();
         let tmp_path = std::env::temp_dir().join(format!("fframes-{session}"));
         let directory = render_options.tmp_files_directory.unwrap_or(&tmp_path);
-
         if !directory.exists() {
             std::fs::create_dir(directory)?;
         }

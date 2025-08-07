@@ -213,7 +213,7 @@ pub struct FFmpegFrameBuf {
     // This is not a safe operation but it gives a dramatic performance improvement
     // for the updating the underlying datavec. So we are relying on the constraint that
     // the decoder can operate (thus write the datavec) only within the frame, but
-    // the frame can be sent and read outside the decoder
+    // the frame can be sent and read outside the dnecoder
     data_buf: Arc<UnsafeCell<VecDeque<ScaledFrameImage>>>,
     sws_scaler: UnsafeCell<SwsScaler>,
 }

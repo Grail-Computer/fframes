@@ -88,7 +88,7 @@ impl Frame {
     pub fn into_global(self) -> Self {
         Self {
             index: self.global_index,
-            ..self
+i           ..self
         }
     }
 
@@ -229,6 +229,9 @@ impl Frame {
 
     /// Wraps the text string into the lines according to the provided content area width.
     /// This function is executed in runtime and create idiomatic svg <text> <tspan> text </tspan> </text> structure
+    /// ld
+    /// ld
+    ///
     /// which wraps the text string into the lines.
     ///
     /// It resolves individual character widths from provided font files automatically.

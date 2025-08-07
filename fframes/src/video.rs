@@ -1,8 +1,8 @@
 use crate::audio_map::AudioMap;
 use crate::error::Result;
 use crate::{
-    AudioTimelineUnit, Color, Duration, FFramesContext, Frame, ResolvedAudioMap, SceneInfo, Svgr,
-    TimeBase, scenes::*,
+    AudioTimelineUnit, Duration, FFramesContext, Frame, ResolvedAudioMap, SceneInfo, Svgr,
+    TimeBase, scenes::*, Color,
 };
 
 /// The base fframes video trait. It represents how to render a video for a struct which becomes an
@@ -16,7 +16,7 @@ pub trait Video: Sync + Sized {
     ///
     /// Make sure if you want to render a transparent video use `Color::TRANSPARENT` here
     /// **and** set the proper encoder and pixel_format that supports transparency
-    /// (e.g. encoder libx265 with yuva420p pixel format) when rendering the video.
+    /// (e.g. encoder libx265 with yuva420p pixel format) when rendering the video. 
     const BACKGROUND_COLOR: Color = Color::BLACK;
 
     /// Defines either dynamic or inferred duration of the video
@@ -32,7 +32,7 @@ pub trait Video: Sync + Sized {
     /// In short: put your scenes to the `&self` or do not add any fields to the scene struct.
     ///
     /// # Example
-    /// ```no_run
+    /// ```rust
     /// use fframes::{Video, Scenes, Scene, Frame, Svgr, FFramesContext};
     ///
     /// struct SceneZeroSize;
@@ -51,7 +51,7 @@ pub trait Video: Sync + Sized {
     ///     fn define_scenes(&self) -> Scenes {
     ///         let scenes: Vec<&dyn Scene> = vec![
     ///             // notice this is a zero sized type so we can create ref right here
-    ///             &SceneZeroSize,
+    ///             &SceneZeroSize},
     ///             // And here we passing a ref bound to the &self
     ///             &self.scene_with_input,
     ///         ]
@@ -64,7 +64,7 @@ pub trait Video: Sync + Sized {
         Scenes(None)
     }
 
-    /// This function is going to be called for each frame of the video and expects to return
+    /// This function is going to be called for each frame of the video and expects to return 
     /// a valid SVG rendering tree for the specific frame.
     ///
     /// This function is going to be called thousands of times per rendering, so it is important to reduce

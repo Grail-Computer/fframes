@@ -281,6 +281,7 @@ fn spawn_renderer<TBackend: SkiaBackend>(
     let (mut surface, mut gpu_context) = backend.create_skia_surface()?;
     let image_info = surface.image_info();
     let frame_datavec_size = image_info.compute_byte_size(image_info.min_row_bytes());
+    let row_bytes = image_info.min_row_bytes();
 
     while let Ok(FrameRequest { dom, frame }) = {
         #[cfg(feature = "debug")]
@@ -310,12 +311,10 @@ fn spawn_renderer<TBackend: SkiaBackend>(
             }
 
             let dom = dom.into_inner();
-            let pixmap = skia_safe::Pixmap::new(
-                &image_info,
-                &mut payload.pixels,
-                image_info.min_row_bytes(),
-            )
-            .ok_or_else(|| FFramesRendererError::Custom("Failed to create pixmap".to_string()))?;
+            let pixmap = skia_safe::Pixmap::new(&image_info, &mut payload.pixels, row_bytes)
+                .ok_or_else(|| {
+                    FFramesRendererError::Custom("Failed to create pixmap".to_string())
+                })?;
 
             surface.canvas().clear(background_color);
             dom.render(surface.canvas());
@@ -330,7 +329,7 @@ fn spawn_renderer<TBackend: SkiaBackend>(
                 gpu_context.as_mut(),
                 &pixmap,
                 (0, 0),
-                skia_safe::image::CachingHint::Disallow,
+                skia_safe::image::CachingHint::Allow,
             ) {
                 return Err(FFramesRendererError::Custom(
                     "Failed to read pixels from Skia image".to_string(),

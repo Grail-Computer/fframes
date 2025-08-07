@@ -8,7 +8,7 @@ await initWasm();
 const bridge = create_wasm_bridge();
 
 renderEditor(bridge, {
-  dynamicImageSizeLimitBytes: 10 * 1024 * 1024, // 10MB
+  dynamicImageSizeLimitBytes: 1 * 1024 * 1024, // 1MB
   dynamicMediaFolder: import.meta.glob("../media/*", {
     query: "url",
     import: "default",

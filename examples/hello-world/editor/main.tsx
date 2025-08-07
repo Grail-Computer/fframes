@@ -5,11 +5,4 @@ import "@fframes/editor/dist/fframes-editor.css";
 await initWasm();
 const bridge = create_wasm_bridge();
 
-renderEditor(
-  bridge,
-  import.meta.glob("../media/*", {
-    query: "url",
-    import: "default",
-    eager: true,
-  })
-);
+renderEditor(bridge, {});

@@ -12,6 +12,8 @@ type state = {
   svg: option<string>,
   volume: option<int>,
   magnet: option<int>,
+  zoom: float,
+  viewportOffset: float,
 }
 
 @genType
@@ -23,6 +25,9 @@ type action =
   | Pause
   | SetVolume(int)
   | SetMagnet
+  | SetZoom(float)
+  | SetViewportOffset(float)
+  | BatchZoomUpdate(float, float) // zoom, viewportOffset
 
 let currentFps: ref<option<int>> = ref(None)
 
@@ -32,11 +37,19 @@ let volume_key = "ffvolume"
 let frame_key = "fframe"
 @inline
 let scene_key = "ffscene"
+@inline
+let zoom_key = "ffzoom"
+@inline
+let viewport_offset_key = "ffviewportoffset"
 let get_magnet_key = (video: WasmController.videoMeta) => video.name ++ "_ffmagnet"
 
 let min_volume = 0
 let max_volume = 100
 let validateVolume = Utils.Math.minMax(~min=min_volume, ~max=max_volume)
+
+let min_zoom = 0.1
+let max_zoom = 10.0
+let validateZoom = Utils.Math.minMax(~min=min_zoom, ~max=max_zoom)
 
 module MakePlayer = (Wasm: WasmController.WasmBridge) => {
   module PlayerState = {
@@ -51,6 +64,30 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         Js.Int.fromString,
       )
 
+    let savedZoom =
+      Dom.Storage.getItem(zoom_key, Dom.Storage.localStorage)
+      ->Option.flatMap(str => {
+        let parsed = Js.Float.fromString(str)
+        if Js.Float.isNaN(parsed) {
+          None
+        } else {
+          Some(validateZoom(parsed))
+        }
+      })
+      ->Option.getWithDefault(1.0)
+
+    let savedViewportOffset =
+      Dom.Storage.getItem(viewport_offset_key, Dom.Storage.localStorage)
+      ->Option.flatMap(str => {
+        let parsed = Js.Float.fromString(str)
+        if Js.Float.isNaN(parsed) || parsed < 0.0 {
+          None
+        } else {
+          Some(parsed)
+        }
+      })
+      ->Option.getWithDefault(0.0)
+
     let initialFrame = switch (
       savedMagnet,
       Wasm.videoMeta.scenesTimeline->Js.Nullable.toOption,
@@ -58,14 +95,19 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
     ) {
     | (Some(magnet), _, _) =>
       magnet->Utils.Math.minI(Wasm.videoMeta.durationInFrames)->Utils.Option.some
-    | (_, Some(scenes), Some(index)) =>
+    | (_, Some(scenes), Some(index)) if index >= 0 && index < Js.Array.length(scenes) =>
       scenes->Js.Array.get(index)->Option.map(scene => scene.start)
     | _ =>
-      Dom.Storage.getItem(frame_key, Dom.Storage.localStorage)->Option.flatMap(Js.Int.fromString)
+      Dom.Storage.getItem(frame_key, Dom.Storage.localStorage)
+      ->Option.flatMap(Js.Int.fromString)
+      ->Option.map(frame =>
+        Utils.Math.minI(Utils.Math.maxI(0, frame), Wasm.videoMeta.durationInFrames)
+      )
     }->Utils.Option.unwrapOr(0)
 
     let volume = switch Dom.Storage.getItem(volume_key, Dom.Storage.localStorage) {
-    | Some(savedValue) if Wasm.videoMeta.hasAudio => savedValue->Js.Int.fromString
+    | Some(savedValue) if Wasm.videoMeta.hasAudio =>
+      savedValue->Js.Int.fromString->Option.map(validateVolume)
     | None if Wasm.videoMeta.hasAudio => Some(60)
     | _ => None
     }
@@ -79,6 +121,8 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         volume: volume,
         svg: Wasm.controller->WasmController.render_frame(0->Js.BigInt.fromInt)->Utils.Option.some,
         magnet: savedMagnet,
+        zoom: savedZoom,
+        viewportOffset: savedViewportOffset,
       }
     | _ => {
         frame: initialFrame,
@@ -88,6 +132,8 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         volume: volume,
         fpsLimit: Some(Wasm.videoMeta.fps),
         magnet: savedMagnet,
+        zoom: savedZoom,
+        viewportOffset: savedViewportOffset,
       }
     }
   }
@@ -152,6 +198,31 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         ...state,
         magnet: Some(state.frame),
       }
+    | SetZoom(zoom) => {
+        ...state,
+        zoom: validateZoom(zoom),
+      }
+    | SetViewportOffset(offset) => {
+        Dom.Storage.localStorage |> Dom.Storage.setItem(
+          viewport_offset_key,
+          offset->Js.Float.toString,
+        )
+        {
+          ...state,
+          viewportOffset: offset,
+        }
+      }
+    | BatchZoomUpdate(zoom, offset) => {
+        Dom.Storage.localStorage |> Dom.Storage.setItem(
+          viewport_offset_key,
+          offset->Js.Float.toString,
+        )
+        {
+          ...state,
+          zoom: validateZoom(zoom),
+          viewportOffset: offset,
+        }
+      }
     }
   }
 
@@ -198,6 +269,10 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
       )
     | SetMagnet if get().magnet === Some(get().frame) =>
       Dom.Storage.localStorage |> Dom.Storage.removeItem(get_magnet_key(Wasm.videoMeta))
+    | SetZoom(zoom) =>
+      Dom.Storage.localStorage |> Dom.Storage.setItem(zoom_key, zoom->Js.Float.toString)
+    | BatchZoomUpdate(zoom, _) =>
+      Dom.Storage.localStorage |> Dom.Storage.setItem(zoom_key, zoom->Js.Float.toString)
     | _ => ()
     }
   }

@@ -32,11 +32,12 @@ start-example example:
 
 run example:
   #!/bin/bash
+  set -eou pipefail
+  trap 'echo "Killing background jobs..."; kill $(jobs -p) 2>/dev/null; exit 1' EXIT INT TERM
+  
   just watch-example-build {{example}} &
-  P1=$!
   just start-example {{example}} &
-  P2=$!
-  wait $P1 $P2
+  just watch-editor
 
 render example *ARGS:
   cd examples/{{example}} && cargo run --release {{ARGS}} && just play {{example}}
@@ -72,7 +73,6 @@ install-ffmpeg version:
   cd ffmpeg && ./configure --enable-shared --disable-x86asm
   cd ffmpeg && make 
   cd ffmpeg && sudo make install
-
 test *ARGS: 
   cargo test {{ARGS}}
   cargo test -p fframes_test_utils --no-default-features {{ARGS}}

@@ -15,13 +15,24 @@ imageData.src = "data:image/svg+xml;base64,".concat(Icons.magnetRawIcon);
 
 function rendermagnet(ctx, size, frame) {
   var magnetX = CanvasSize.frameToX(frame, size);
-  ctx.beginPath();
-  ctx.moveTo(magnetX, 0);
-  ctx.lineTo(magnetX, size.height);
-  Webapi__Canvas__Canvas2d.setStrokeStyle(ctx, /* String */0, "rgb(241 245 249 / 0.8)");
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.drawImage(imageData, ((magnetX | 0) - 18 | 0) - 5 | 0, 2, 18, 18);
+  var timelineStart = size.timelineMarginLeft;
+  var timelineEnd = timelineStart + size.maxSceneWidth;
+  var isMagnetVisible = magnetX >= timelineStart && magnetX <= timelineEnd;
+  if (isMagnetVisible) {
+    ctx.beginPath();
+    ctx.moveTo(magnetX, 0);
+    ctx.lineTo(magnetX, size.height);
+    Webapi__Canvas__Canvas2d.setStrokeStyle(ctx, /* String */0, "rgb(241 245 249 / 0.8)");
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.drawImage(imageData, ((magnetX | 0) - 18 | 0) - 5 | 0, 2, 18, 18);
+    return ;
+  }
+  var cornerX = magnetX < timelineStart ? timelineStart + 10.0 : timelineEnd - 30.0;
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.drawImage(imageData, cornerX | 0, 2, 18, 18);
+  ctx.restore();
   
 }
 
@@ -36,12 +47,15 @@ function ControlsCanvas(Props) {
           Belt_Option.map(Caml_option.nullable_to_opt(controlsCanvasRef.current), (function (canvasElement) {
                   var ctx = canvasElement.getContext("2d");
                   ctx.clearRect(0, 0, size.scaledWidth, size.scaledHeight);
-                  return Belt_Option.map(player.magnet, (function (param) {
-                                return rendermagnet(ctx, size, param);
+                  return Belt_Option.map(player.magnet, (function (frame) {
+                                return rendermagnet(ctx, size, frame);
                               }));
                 }));
           
-        }), [player.magnet]);
+        }), [
+        player.magnet,
+        player.viewportOffset
+      ]);
   return React.createElement("canvas", {
               ref: controlsCanvasRef,
               className: "absolute inset-0",

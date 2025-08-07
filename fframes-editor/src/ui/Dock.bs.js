@@ -15,8 +15,10 @@ import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as UseDebounce from "../bindings/UseDebounce.bs.js";
+import * as ZoomControls from "./Timeline/ZoomControls.bs.js";
 import * as EditorContext from "../EditorContext.bs.js";
 import * as AnimationRuntime from "../services/AnimationRuntime.bs.js";
+import * as UseViewportFollow from "./Timeline/useViewportFollow.bs.js";
 import * as Webapi__Dom__Window from "bs-webapi/src/Webapi/Dom/Webapi__Dom__Window.bs.js";
 import * as Webapi__Dom__EventTarget from "bs-webapi/src/Webapi/Dom/Webapi__Dom__EventTarget.bs.js";
 
@@ -93,6 +95,7 @@ function getFpsMarker(fps, desiredFps) {
 
 function Dock(Props) {
   var fullScreenToggler = Props.fullScreenToggler;
+  var timelineSize = Props.timelineSize;
   var context = EditorContext.useEditorContext(undefined);
   var match = Curry._1(context.usePlayer, undefined);
   var dispatch = match[1];
@@ -100,6 +103,7 @@ function Dock(Props) {
   var match$1 = Hooks.useToggle(context.options.hideDock);
   var collapsedToggle = match$1[1];
   var isCollapsed = match$1[0];
+  var followFrameToViewport = timelineSize !== undefined ? UseViewportFollow.useViewportFollow(timelineSize) : undefined;
   var match$2 = UseDebounce.useThrottle(AnimationRuntime.AudioRuntime.runtimeFps.contents, 100);
   var debouncedFps = match$2[0];
   var handlePlayOrPause = Hooks.useEvent(function (param) {
@@ -130,16 +134,24 @@ function Dock(Props) {
                     }));
       });
   var handleSeekLeft = Hooks.useEvent(function (param) {
-        return Curry._1(dispatch, {
-                    TAG: /* Seek */0,
-                    _0: player.frame - (context.videoMeta.fps << 1) | 0
-                  });
+        var targetFrame = player.frame - (context.videoMeta.fps << 1) | 0;
+        Curry._1(dispatch, {
+              TAG: /* Seek */0,
+              _0: targetFrame
+            });
+        return Belt_Option.forEach(followFrameToViewport, (function (follow) {
+                      return Curry._1(follow, targetFrame);
+                    }));
       });
   var handleSeekRight = Hooks.useEvent(function (param) {
-        return Curry._1(dispatch, {
-                    TAG: /* Seek */0,
-                    _0: player.frame + (context.videoMeta.fps << 1) | 0
-                  });
+        var targetFrame = player.frame + (context.videoMeta.fps << 1) | 0;
+        Curry._1(dispatch, {
+              TAG: /* Seek */0,
+              _0: targetFrame
+            });
+        return Belt_Option.forEach(followFrameToViewport, (function (follow) {
+                      return Curry._1(follow, targetFrame);
+                    }));
       });
   var toggleMute = Hooks.useEvent(function (param) {
         return Curry._1(dispatch, {
@@ -156,16 +168,24 @@ function Dock(Props) {
         return Curry._1(dispatch, /* SetMagnet */3);
       });
   var seekToStart = Hooks.useEvent(function (param) {
-        return Curry._1(dispatch, {
-                    TAG: /* Seek */0,
-                    _0: Utils.$$Option.unwrapOr(player.magnet, 0)
-                  });
+        var targetFrame = Utils.$$Option.unwrapOr(player.magnet, 0);
+        Curry._1(dispatch, {
+              TAG: /* Seek */0,
+              _0: targetFrame
+            });
+        return Belt_Option.forEach(followFrameToViewport, (function (follow) {
+                      return Curry._1(follow, targetFrame);
+                    }));
       });
   var seekToEnd = Hooks.useEvent(function (param) {
-        return Curry._1(dispatch, {
-                    TAG: /* Seek */0,
-                    _0: context.videoMeta.durationInFrames
-                  });
+        var targetFrame = context.videoMeta.durationInFrames;
+        Curry._1(dispatch, {
+              TAG: /* Seek */0,
+              _0: targetFrame
+            });
+        return Belt_Option.forEach(followFrameToViewport, (function (follow) {
+                      return Curry._1(follow, targetFrame);
+                    }));
       });
   var switchScene = Hooks.useEvent(function (dir) {
         return Belt_Option.forEach(Belt_Option.flatMap(Caml_option.nullable_to_opt(context.videoMeta.scenesTimeline), (function (timeline) {
@@ -176,10 +196,13 @@ function Dock(Props) {
                                 });
                           return Belt_Array.get(timeline, nextSceneIndex);
                         })), (function (scene) {
-                      return Curry._1(dispatch, {
-                                  TAG: /* Seek */0,
-                                  _0: scene.start
-                                });
+                      Curry._1(dispatch, {
+                            TAG: /* Seek */0,
+                            _0: scene.start
+                          });
+                      return Belt_Option.forEach(followFrameToViewport, (function (follow) {
+                                    return Curry._1(follow, scene.start);
+                                  }));
                     }));
       });
   var toggleDock = Hooks.useEvent(function (param) {
@@ -356,7 +379,9 @@ function Dock(Props) {
                       }),
                   label: "Turn on/off full-screen mode",
                   onClick: fullScreenToggler.toggle
-                }), React.createElement(make$2, {
+                }), React.createElement(make$1, {
+                  children: React.createElement(ZoomControls.make, {})
+                }), React.createElement(make, {}), React.createElement(make$2, {
                   children: React.createElement(Icons.CollapseIcon.make, {
                         className: Cx.cx([
                               "h-6 w-6 transition-transform",

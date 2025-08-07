@@ -28,7 +28,6 @@ impl Scene for CodeDemoScene {
                  skew_y: -tilt_angle + 0.4,
                  ..Default::default()
              }}
-             transform={Transform::skew(tilt_angle, -tilt_angle + 0.4)}
              href={ctx.get_image("beta_code.png").expect("Do not panic in real code").href()}
              opacity={frame.animate(&fframes::timeline!(
                at 0.3, duration 0.5, animate 0. => 1., Easing::Linear

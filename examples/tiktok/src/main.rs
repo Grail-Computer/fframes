@@ -10,7 +10,7 @@ fn main() {
         "out.webm",
         &GooseVideo { media: &media },
         fframes::cpu::CpuRenderingBackend {
-            cache_capacity: 0,
+            cache_capacity: 200,
             ..Default::default()
         },
         &RenderOptions {

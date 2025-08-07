@@ -18,8 +18,36 @@ function useCanvasScale(elementRef, size) {
   
 }
 
+function calculateTimelineMargins(viewportOffset, videoTotalWidth, visibleWidth) {
+  var atVideoStart = viewportOffset <= 0.0;
+  var atVideoEnd = viewportOffset + visibleWidth >= videoTotalWidth;
+  var leftMargin;
+  if (atVideoStart) {
+    var visibleStartPortion = Math.min(32.0, -viewportOffset + 32.0);
+    leftMargin = Math.max(0.0, visibleStartPortion) | 0;
+  } else {
+    leftMargin = 0;
+  }
+  var rightMargin;
+  if (atVideoEnd) {
+    var pastEndPortion = viewportOffset + visibleWidth - videoTotalWidth;
+    var visibleEndPortion = Math.min(32.0, pastEndPortion + 32.0);
+    rightMargin = Math.max(0.0, visibleEndPortion) | 0;
+  } else {
+    rightMargin = 0;
+  }
+  return [
+          leftMargin,
+          rightMargin
+        ];
+}
+
+function calculateTimelineMargin(viewportOffset, videoTotalWidth, visibleWidth) {
+  return calculateTimelineMargins(viewportOffset, videoTotalWidth, visibleWidth)[0];
+}
+
 function frameToX(frame, size) {
-  return frame * size.frameToPxRatio + 32;
+  return frame * size.frameToPxRatio + size.timelineMarginLeft - size.viewportOffset;
 }
 
 var audio_height = 60;
@@ -33,6 +61,8 @@ export {
   Canvas ,
   Canvas2d ,
   useCanvasScale ,
+  calculateTimelineMargins ,
+  calculateTimelineMargin ,
   frameToX ,
   
 }

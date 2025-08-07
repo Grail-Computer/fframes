@@ -6,7 +6,10 @@ type canvasSize = {
   scaledHeight: float,
   maxSceneWidth: float,
   frameToPxRatio: float,
-  pxToFrameRation: float,
+  pxToFrameRatio: float,
+  viewportOffset: float,
+  timelineMarginLeft: int,
+  timelineMarginRight: int,
 }
 
 // Make sure to not change this from ints to float to enable preval of calculations
@@ -45,5 +48,48 @@ let useCanvasScale = (elementRef: React.ref<'a>, size) => {
   }, [size])
 }
 
+let calculateTimelineMargins = (
+  viewportOffset: float,
+  ~videoTotalWidth: float,
+  ~visibleWidth: float,
+) => {
+  // Calculate if we're at the video start or end
+  let atVideoStart = viewportOffset <= 0.0
+  let atVideoEnd = viewportOffset +. visibleWidth >= videoTotalWidth
+
+  // Calculate left margin when at video start
+  let leftMargin = if atVideoStart {
+    // At video start: show margin proportional to how much video start is visible
+    let visibleStartPortion = Js.Math.min(32.0, -.viewportOffset +. 32.0)
+    Js.Math.max(0.0, visibleStartPortion)->Belt.Float.toInt
+  } else {
+    0
+  }
+
+  // Calculate right margin when at video end
+  let rightMargin = if atVideoEnd {
+    // At video end: show margin proportional to how much past the end we can see
+    let pastEndPortion = viewportOffset +. visibleWidth -. videoTotalWidth
+    let visibleEndPortion = Js.Math.min(32.0, pastEndPortion +. 32.0)
+    Js.Math.max(0.0, visibleEndPortion)->Belt.Float.toInt
+  } else {
+    0
+  }
+
+  (leftMargin, rightMargin)
+}
+
+// Backward compatibility function for left margin only
+let calculateTimelineMargin = (
+  viewportOffset: float,
+  ~videoTotalWidth: float,
+  ~visibleWidth: float,
+) => {
+  let (leftMargin, _) = calculateTimelineMargins(viewportOffset, ~videoTotalWidth, ~visibleWidth)
+  leftMargin
+}
+
 let frameToX = (frame, size: canvasSize) =>
-  Belt.Float.fromInt(frame) *. size.frameToPxRatio +. (timeline_margin_x / 2)->Belt.Float.fromInt
+  Belt.Float.fromInt(frame) *. size.frameToPxRatio +.
+  Belt.Float.fromInt(size.timelineMarginLeft) -.
+  size.viewportOffset

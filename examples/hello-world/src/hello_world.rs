@@ -47,7 +47,7 @@ impl Video for HelloWorldVideo<'_> {
 
                 // Main greeting text
                 <text
-                    x="100"
+                    x="99"
                     y="300"
                     font-family="DM Sans"
                     font-size="150"
@@ -77,7 +77,7 @@ impl Video for HelloWorldVideo<'_> {
                     font-family="JetBrains Mono"
                     font-size="74"
                     font-weight="500"
-                    fill="#4b5563"
+                    fill="#3b5563"
                 >
                     {format!("This frame index: {}, second: {:.2}", frame.index, frame.seconds())}
                 </text>

@@ -52,7 +52,7 @@ module AudioNode = {
   @get external getGain: t => AudioParam.t = "gain"
   @set external setGainLevel: (t, float) => unit = "gain.value"
   @send external start: (t, float) => unit = "start"
-  @send external stop: (t) => unit = "stop"
+  @send external stop: t => unit = "stop"
   @send
   external startWithOffset: (t, ~startTime: float, ~offset: float, ~duration: float) => unit =
     "start"

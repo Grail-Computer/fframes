@@ -4,6 +4,25 @@ open CanvasSize
 module Canvas = Webapi.Canvas
 module Canvas2d = Webapi.Canvas.Canvas2d
 
+let previewImageCache = ref(Belt.Map.String.empty)
+let maxCacheSize = 500
+
+// Clean up cache when it gets too large
+let cleanupCache = () => {
+  let currentSize = previewImageCache.contents->Belt.Map.String.size
+  if currentSize > maxCacheSize {
+    // Keep only the most recent half of the cache
+    let keysArray = previewImageCache.contents->Belt.Map.String.keysToArray
+    let keepSize = maxCacheSize / 2
+    let keysToRemove = Belt.Array.slice(keysArray, ~offset=0, ~len=currentSize - keepSize)
+
+    previewImageCache :=
+      Belt.Array.reduce(keysToRemove, previewImageCache.contents, (cache, key) =>
+        cache->Belt.Map.String.remove(key)
+      )
+  }
+}
+
 @send
 external drawImage: (
   Canvas.Canvas2d.t,
@@ -26,8 +45,68 @@ let renderRoundedRect = (ctx, ~x, ~y, ~width, ~height, ~radius, ()) => {
   ctx->Canvas2d.stroke
 }
 
-let clipOverTimeLineElement = (ctx, ~y, ~width, ~fill) => {
-  let x = Float.fromInt(timeline_margin_x / 2)
+let fillRoundedRect = (ctx, ~x, ~y, ~width, ~height, ~radius, ()) => {
+  ctx->Canvas2d.beginPath
+  ctx->Canvas2d.moveTo(~x=x +. radius, ~y)
+
+  ctx->Canvas2d.arcTo(~x1=x +. width, ~y1=y, ~x2=x +. width, ~y2=y +. height, ~r=radius)
+  ctx->Canvas2d.arcTo(~x1=x +. width, ~y1=y +. height, ~x2=x, ~y2=y +. height, ~r=radius)
+  ctx->Canvas2d.arcTo(~x1=x, ~y1=y +. height, ~x2=x, ~y2=y, ~r=radius)
+  ctx->Canvas2d.arcTo(~x1=x, ~y1=y, ~x2=x +. width, ~y2=y, ~r=radius)
+
+  ctx->Canvas2d.fill
+}
+
+let renderRoundedCorners = (
+  ctx,
+  ~x,
+  ~y,
+  ~width,
+  ~height,
+  ~topLeft=0.0,
+  ~topRight=0.0,
+  ~bottomLeft=0.0,
+  ~bottomRight=0.0,
+  (),
+) => {
+  ctx->Canvas2d.beginPath
+  ctx->Canvas2d.moveTo(~x=x +. topLeft, ~y)
+
+  // Top edge
+  ctx->Canvas2d.lineTo(~x=x +. width -. topRight, ~y)
+  if topRight > 0.0 {
+    ctx->Canvas2d.arcTo(~x1=x +. width, ~y1=y, ~x2=x +. width, ~y2=y +. topRight, ~r=topRight)
+  }
+
+  // Right edge
+  ctx->Canvas2d.lineTo(~x=x +. width, ~y=y +. height -. bottomRight)
+  if bottomRight > 0.0 {
+    ctx->Canvas2d.arcTo(
+      ~x1=x +. width,
+      ~y1=y +. height,
+      ~x2=x +. width -. bottomRight,
+      ~y2=y +. height,
+      ~r=bottomRight,
+    )
+  }
+
+  // Bottom edge
+  ctx->Canvas2d.lineTo(~x=x +. bottomLeft, ~y=y +. height)
+  if bottomLeft > 0.0 {
+    ctx->Canvas2d.arcTo(~x1=x, ~y1=y +. height, ~x2=x, ~y2=y +. height -. bottomLeft, ~r=bottomLeft)
+  }
+
+  // Left edge
+  ctx->Canvas2d.lineTo(~x, ~y=y +. topLeft)
+  if topLeft > 0.0 {
+    ctx->Canvas2d.arcTo(~x1=x, ~y1=y, ~x2=x +. topLeft, ~y2=y, ~r=topLeft)
+  }
+
+  ctx->Canvas2d.closePath
+}
+
+let clipOverTimeLineElement = (ctx, size: canvasSize, ~y, ~width, ~fill) => {
+  let x = Float.fromInt(size.timelineMarginLeft)
   let height = Float.fromInt(scene_height_size)
 
   ctx->renderRoundedRect(~x, ~y, ~width, ~height, ~radius=12.0, ())
@@ -53,60 +132,154 @@ let renderScenes = (ctx, size: canvasSize, editorContext: EditorContext.editorCo
   ->Js.Nullable.toOption
   ->Belt.Option.forEach(array =>
     array->Js.Array.forEachWithIndex((scene, i) => {
-      let sceneColor = sceneColors |> Js.Array.length |> mod(i) |> Belt.Array.get(sceneColors)
-      ctx->Canvas2d.setFillStyle(String, sceneColor->Utils.Option.unwrapOr("#fbbf24"))
+      // Skip scenes that start beyond video duration
+      if scene.start < editorContext.videoMeta.durationInFrames {
+        let sceneColor = sceneColors |> Js.Array.length |> mod(i) |> Belt.Array.get(sceneColors)
+        ctx->Canvas2d.setFillStyle(String, sceneColor->Utils.Option.unwrapOr("#fbbf24"))
 
-      let x1 = scene.start->frameToX(size)
-      let x2 = scene.end->frameToX(size)
-      let overflowSafeX =
-        array
-        ->Js.Array.get(i - 1)
-        ->Belt.Option.map(prev => frameToX(Utils.Math.maxI(prev.end, scene.start), size))
-        ->Utils.Option.unwrapOr(x1)
+        // Clamp scene boundaries to video duration to prevent rendering beyond video end
+        let clampedStart = Utils.Math.minI(scene.start, editorContext.videoMeta.durationInFrames)
+        let clampedEnd = Utils.Math.minI(scene.end, editorContext.videoMeta.durationInFrames)
 
-      let width = x2 -. x1
-      let markSize = 12
+        let x1 = clampedStart->frameToX(size)
+        let x2 = clampedEnd->frameToX(size)
+        let overflowSafeX =
+          array
+          ->Js.Array.get(i - 1)
+          ->Belt.Option.map(prev =>
+            frameToX(
+              Utils.Math.maxI(
+                Utils.Math.minI(prev.end, editorContext.videoMeta.durationInFrames),
+                clampedStart,
+              ),
+              size,
+            )
+          )
+          ->Utils.Option.unwrapOr(x1)
 
-      // rescript cannot precalculate float expressions so using as much ints as possible
-      let uninlided_y = timeline_scenes_start_y->Int.toFloat
+        // Constrain scene end position to respect right margin
+        let timelineEnd = size.timelineMarginLeft->Float.fromInt +. size.maxSceneWidth
+        let constrainedX2 = Js.Math.min(x2, timelineEnd)
+        let width = constrainedX2 -. x1
+        let markSize = 12
 
-      ctx->Canvas2d.globalAlpha(1.)
+        // rescript cannot precalculate float expressions so using as much ints as possible
+        let uninlided_y = timeline_scenes_start_y->Int.toFloat
 
-      ctx->Canvas2d.beginPath
-      ctx->Canvas2d.moveTo(~x=x2, ~y=timeline_scenes_start_y->Float.fromInt)
-      ctx->Canvas2d.lineTo(
-        ~x=x2 -. markSize->Float.fromInt,
-        ~y=timeline_scenes_start_y->Float.fromInt,
-      )
-      ctx->Canvas2d.lineTo(~x=x2, ~y=(timeline_scenes_start_y + markSize)->Float.fromInt)
-      ctx->Canvas2d.fill
-      ctx->Canvas2d.globalAlpha(0.8)
-      ctx->Canvas2d.fillRect(~x=overflowSafeX, ~y=uninlided_y, ~w=x2 -. overflowSafeX, ~h=4.)
-      ctx->Canvas2d.closePath
+        ctx->Canvas2d.globalAlpha(1.)
 
-      ctx->Canvas2d.save
-
-      ctx->Canvas2d.rect(~x=x1, ~y=uninlided_y, ~w=width -. 4., ~h=20.)
-      ctx->Canvas2d.clip
-      scene.name
-      ->Js.String.split("::")
-      ->Utils.Array.last
-      ->Belt.Option.forEach(name =>
-        name->Canvas2d.fillText(
-          ctx,
-          ~x=overflowSafeX +. 4.,
-          ~y=(timeline_scenes_start_y + 16)->Int.toFloat,
+        ctx->Canvas2d.beginPath
+        ctx->Canvas2d.moveTo(~x=constrainedX2, ~y=timeline_scenes_start_y->Float.fromInt)
+        ctx->Canvas2d.lineTo(
+          ~x=constrainedX2 -. markSize->Float.fromInt,
+          ~y=timeline_scenes_start_y->Float.fromInt,
         )
-      )
+        ctx->Canvas2d.lineTo(
+          ~x=constrainedX2,
+          ~y=(timeline_scenes_start_y + markSize)->Float.fromInt,
+        )
+        ctx->Canvas2d.fill
+        ctx->Canvas2d.globalAlpha(0.8)
+        ctx->Canvas2d.fillRect(
+          ~x=overflowSafeX,
+          ~y=uninlided_y,
+          ~w=constrainedX2 -. overflowSafeX,
+          ~h=4.,
+        )
+        ctx->Canvas2d.closePath
 
-      ctx->Canvas2d.restore
+        ctx->Canvas2d.save
 
-      ctx->Canvas2d.globalAlpha(0.25)
-      ctx->Canvas2d.fillRect(~x=x1, ~y=uninlided_y, ~w=width, ~h=size.scaledHeight)
+        ctx->Canvas2d.rect(~x=x1, ~y=uninlided_y, ~w=width -. 4., ~h=20.)
+        ctx->Canvas2d.clip
+        scene.name
+        ->Js.String.split("::")
+        ->Utils.Array.last
+        ->Belt.Option.forEach(name =>
+          name->Canvas2d.fillText(
+            ctx,
+            ~x=overflowSafeX +. 4.,
+            ~y=(timeline_scenes_start_y + 16)->Int.toFloat,
+          )
+        )
+
+        ctx->Canvas2d.restore
+
+        ctx->Canvas2d.globalAlpha(0.25)
+        ctx->Canvas2d.fillRect(~x=x1, ~y=uninlided_y, ~w=width, ~h=size.scaledHeight)
+      }
     })
   )
 
   ctx->Canvas2d.globalAlpha(1.)
+}
+
+// Unified function to render a frame with proper clipping and rounded corners
+let renderFrameWithClipping = (
+  ctx,
+  ~image,
+  ~previewX,
+  ~renderWidth,
+  ~frameNumber,
+  ~i,
+  ~videoEndX,
+  ~endX,
+  ~editorContext: EditorContext.editorContext,
+) => {
+  let videoConstrainedWidth = videoEndX -. previewX
+  let timelineConstrainedWidth = endX -. previewX
+  let clipWidthFloat = Js.Math.min(videoConstrainedWidth, timelineConstrainedWidth)
+  let clipWidth = clipWidthFloat->Float.toInt
+
+  if previewX < videoEndX && clipWidth > 0 {
+    ctx->Canvas2d.save
+
+    let frameExtendsPastVideoEnd = previewX +. clipWidthFloat >= videoEndX
+    let isActualLastFrame = frameNumber >= editorContext.videoMeta.durationInFrames - 1
+
+    let isFirstFrame = i === 0
+    let isLastFrame = isActualLastFrame || frameExtendsPastVideoEnd
+
+    ctx->renderRoundedCorners(
+      ~x=previewX,
+      ~y=timeline_margin_y->Float.fromInt,
+      ~width=clipWidth->Float.fromInt,
+      ~height=Float.fromInt(scene_height_size),
+      ~topLeft=if isFirstFrame {
+        16.0
+      } else {
+        0.0
+      },
+      ~bottomLeft=if isFirstFrame {
+        16.0
+      } else {
+        0.0
+      },
+      ~topRight=if isLastFrame {
+        16.0
+      } else {
+        0.0
+      },
+      ~bottomRight=if isLastFrame {
+        16.0
+      } else {
+        0.0
+      },
+      (),
+    )
+
+    ctx->Canvas2d.clip
+
+    ctx->drawImage(
+      ~imageData=image,
+      ~dy=timeline_margin_y,
+      ~dx=previewX->Float.toInt,
+      ~dirtyHeight=scene_height_size,
+      ~dirtyWidth=renderWidth,
+    )
+
+    ctx->Canvas2d.restore
+  }
 }
 
 let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) => {
@@ -114,35 +287,160 @@ let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) =>
     editorContext.videoMeta.width->Float.fromInt /. editorContext.videoMeta.height->Float.fromInt
 
   let width = (Float.fromInt(scene_height_size) *. aspectRatio)->Utils.Math.floor
-  ctx->clipOverTimeLineElement(
-    ~y=timeline_margin_y->Float.fromInt,
-    ~width=size.maxSceneWidth,
-    ~fill="#000",
-  )
 
-  let maxFramesInScene = size.maxSceneWidth->Float.toInt / width
-  let framesBreak = editorContext.videoMeta.durationInFrames / maxFramesInScene
+  // Keep original aspect ratio - width based on video dimensions
+  let frameWidth = width->Float.fromInt
+  let pixelsPerFrame = size.frameToPxRatio
+  let startX = size.timelineMarginLeft->Float.fromInt
 
-  Range.forEach(0, maxFramesInScene, i => {
-    let svg =
-      editorContext.wasmController->WasmController.render_preview_frame(
-        (i * framesBreak)->Js.BigInt.fromInt,
-      )
+  // Calculate video end position for later use
+  let videoEndX = frameToX(editorContext.videoMeta.durationInFrames - 1, size)
+  // Use the already calculated margins from the size object
+  // The right margin is independently calculated and applied
+  let rightMargin = size.timelineMarginRight->Float.fromInt
 
-    let image = Image.make(~width, ~height=scene_height_size)
+  // Calculate the actual viewport end with margin applied
+  let viewportEnd = size.viewportOffset +. size.maxSceneWidth
+  let endX = startX +. size.maxSceneWidth
 
-    image->Image.setSrc(svg->Image.btoa |> Js.String.concat("data:image/svg+xml;base64,"))
-    image->Image.onLoad(() => {
-      ctx->Canvas2d.save
-      ctx->drawImage(
-        ~imageData=image,
-        ~dy=timeline_margin_y,
-        ~dx=timeline_margin_x / 2 + i * width,
-        ~dirtyHeight=scene_height_size,
-        ~dirtyWidth=width,
-      )
-      ctx->Canvas2d.restore
-    })
+  // Always fill the full width with preview frames
+  // Calculate frame density based on zoom level
+  let frameStep = if pixelsPerFrame > frameWidth {
+    // When zoomed in: show every frame (or every few frames)
+    1
+  } else {
+    // When zoomed out: skip frames to maintain good coverage
+    (frameWidth /. pixelsPerFrame)->Js.Math.ceil->Float.toInt
+  }
+
+  // Calculate how many preview frames to render across full width
+  // At high zoom levels, use pixelsPerFrame instead of frameWidth to ensure complete coverage
+  let effectiveFrameWidth = if pixelsPerFrame > frameWidth {
+    pixelsPerFrame
+  } else {
+    frameWidth
+  }
+
+  // Use adjusted width that accounts for right margin
+
+  let numPreviews = (adjustedWidth /. effectiveFrameWidth)->Js.Math.ceil->Float.toInt + 1
+
+  let firstVisibleFrame = (size.viewportOffset /. pixelsPerFrame)->Js.Math.floor->Float.toInt
+  let adjustedFirstFrame = if firstVisibleFrame < 0 {
+    0
+  } else {
+    firstVisibleFrame
+  }
+
+  Range.forEach(0, numPreviews, i => {
+    // Calculate frame number starting from the first visible frame
+    let frameForThisPreview = adjustedFirstFrame + i * frameStep
+    let frameNumber = if frameForThisPreview >= editorContext.videoMeta.durationInFrames {
+      editorContext.videoMeta.durationInFrames - 1
+    } else if frameForThisPreview < 0 {
+      0
+    } else {
+      frameForThisPreview
+    }
+
+    // Position preview to eliminate gaps at all zoom levels
+    let previewX = if pixelsPerFrame > frameWidth {
+      // When zoomed in: position frames based on actual timeline position
+      frameToX(frameNumber, size)
+    } else {
+      // When zoomed out: use continuous positioning to avoid gaps
+      let startX = frameToX(adjustedFirstFrame, size)
+      startX +. i->Float.fromInt *. frameWidth
+    }
+
+    // Only render frames that are within the video duration and timeline bounds
+    // videoEndX already calculated above
+
+    // Calculate the minimum end position (either video end or timeline end)
+    let actualEndX = Js.Math.min(videoEndX, endX)
+
+    if (
+      previewX >= startX -. frameWidth &&
+      previewX < actualEndX &&
+      // Ensure frame starts before the actual end
+      frameNumber < editorContext.videoMeta.durationInFrames
+    ) {
+      // Create cache key for this frame
+      let cacheKey = `${frameNumber->Belt.Int.toString}_${width->Belt.Int.toString}_${scene_height_size->Belt.Int.toString}`
+
+      // Check if we have this frame cached
+      let cachedImage = previewImageCache.contents->Belt.Map.String.get(cacheKey)
+
+      switch cachedImage {
+      | Some(image) => {
+          // Use appropriate width based on zoom level to eliminate gaps
+          let baseRenderWidth = if pixelsPerFrame > frameWidth {
+            // At high zoom: stretch frame to fill timeline space
+            pixelsPerFrame->Float.toInt
+          } else {
+            // At normal zoom: add 1 pixel overlap to prevent gaps
+            width + 1
+          }
+
+          // Use full frame width but create clipping region that respects video end
+          let renderWidth = baseRenderWidth
+
+          // Use unified rendering function
+          renderFrameWithClipping(
+            ctx,
+            ~image,
+            ~previewX,
+            ~renderWidth,
+            ~frameNumber,
+            ~i,
+            ~videoEndX,
+            ~endX,
+            ~editorContext,
+          )
+        }
+      | None => {
+          // Generate new frame and cache it
+          let svg =
+            editorContext.wasmController->WasmController.render_preview_frame(
+              frameNumber->Js.BigInt.fromInt,
+            )
+
+          let image = Image.make(~width, ~height=scene_height_size)
+
+          image->Image.setSrc(svg->Image.btoa |> Js.String.concat("data:image/svg+xml;base64,"))
+          image->Image.onLoad(() => {
+            // Cache the image for future use and cleanup if needed
+            previewImageCache := previewImageCache.contents->Belt.Map.String.set(cacheKey, image)
+            cleanupCache()
+
+            // Use appropriate width based on zoom level to eliminate gaps
+            let baseRenderWidth = if pixelsPerFrame > frameWidth {
+              // At high zoom: stretch frame to fill timeline space
+              pixelsPerFrame->Float.toInt
+            } else {
+              // At normal zoom: add 1 pixel overlap to prevent gaps
+              width + 1
+            }
+
+            // Use full frame width but create clipping region that respects video end
+            let renderWidth = baseRenderWidth
+
+            // Use unified rendering function
+            renderFrameWithClipping(
+              ctx,
+              ~image,
+              ~previewX,
+              ~renderWidth,
+              ~frameNumber,
+              ~i,
+              ~videoEndX,
+              ~endX,
+              ~editorContext,
+            )
+          })
+        }
+      }
+    }
   })
 
   ()
@@ -215,7 +513,12 @@ let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => 
         ->Utils.Option.unwrapOr(startY)
 
       let y = Float.fromInt(timeline_margin_y + scene_height_size + startY)
-      let width = Float.fromInt(track.end - track.start) *. size.frameToPxRatio
+      let originalWidth = Float.fromInt(track.end - track.start) *. size.frameToPxRatio
+
+      // Constrain audio track end position to respect right margin
+      let timelineEnd = size.timelineMarginLeft->Float.fromInt +. size.maxSceneWidth
+      let constrainedEndX = Js.Math.min(x +. originalWidth, timelineEnd)
+      let width = constrainedEndX -. x
 
       xStack->Js.Array.push((x +. width, startY))->ignore
       ctx->Canvas2d.save
@@ -272,67 +575,117 @@ let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => 
 }
 
 let renderTimeSlots = (ctx, size, editorContext: EditorContext.editorContext) => {
-  let coordinate_step = 100
-  let full_timestamp_each_steps = 2
+  // Calculate zoom-aware time slot spacing
+  let pixelsPerFrame = size.frameToPxRatio
+  let pixelsPerSecond = pixelsPerFrame *. editorContext.videoMeta.fps->Float.fromInt
 
-  let stepsCount =
-    size.maxSceneWidth
-    ->Utils.Math.divideFloat(coordinate_step->Float.fromInt)
-    ->Js.Math.floor
-    ->Float.toInt
+  // Determine appropriate time interval based on zoom level
+  let (timeIntervalFrames, full_timestamp_each_steps) = if pixelsPerSecond > 200.0 {
+    // Very zoomed in: show every 0.5 seconds
+    (editorContext.videoMeta.fps / 2, 2)
+  } else if pixelsPerSecond > 100.0 {
+    // Zoomed in: show every second
+    (editorContext.videoMeta.fps, 2)
+  } else if pixelsPerSecond > 50.0 {
+    // Normal: show every 2 seconds
+    (editorContext.videoMeta.fps * 2, 2)
+  } else if pixelsPerSecond > 20.0 {
+    // Zoomed out: show every 5 seconds
+    (editorContext.videoMeta.fps * 5, 2)
+  } else {
+    // Very zoomed out: show every 10 seconds
+    (editorContext.videoMeta.fps * 10, 2)
+  }
 
-  let stepDuration = editorContext.videoMeta.durationInFrames / stepsCount
+  // Calculate visible range based on viewport
+  let startFrame = (size.viewportOffset /. pixelsPerFrame)->Float.toInt
+  let endFrame = ((size.viewportOffset +. size.maxSceneWidth) /. pixelsPerFrame)->Float.toInt
 
-  Range.forEach(0, stepsCount, i => {
-    let x = (i * coordinate_step + timeline_margin_x / 2)->Float.fromInt
+  // Calculate first time slot to show (aligned to interval)
+  let firstSlotFrame = startFrame / timeIntervalFrames * timeIntervalFrames - timeIntervalFrames
+  let lastSlotFrame = endFrame + timeIntervalFrames
 
-    ctx->Canvas2d.beginPath
-    ctx->Canvas2d.moveTo(~x, ~y=0.)
-    ctx->Canvas2d.lineTo(~x, ~y=18.)
+  // Render time slots for visible range - with safety guard
+  let currentFrame = ref(firstSlotFrame)
+  let maxIterations = 10000 // Safety limit to prevent infinite loops
+  let iterations = ref(0)
+  while currentFrame.contents <= lastSlotFrame && iterations.contents < maxIterations && timeIntervalFrames > 0 {
+    let frame = currentFrame.contents
+    if frame >= 0 && frame <= editorContext.videoMeta.durationInFrames {
+      let x = frameToX(frame, size)
 
-    ctx->Canvas2d.setStrokeStyle(String, "#475569")
-    ctx->Canvas2d.stroke
+      ctx->Canvas2d.beginPath
+      ctx->Canvas2d.moveTo(~x, ~y=0.)
+      ctx->Canvas2d.lineTo(~x, ~y=18.)
 
-    if mod(i, full_timestamp_each_steps) === 0 {
-      ctx->Canvas2d.font("12px sans-serif")
-      ctx->Canvas2d.setFillStyle(String, "#64748b")
+      ctx->Canvas2d.setStrokeStyle(String, "rgba(71, 85, 105, 0.3)")
+      ctx->Canvas2d.lineWidth(1.0)
+      ctx->Canvas2d.stroke
 
-      (i * stepDuration)
-      ->Float.fromInt
-      ->Utils.Math.divideFloat(editorContext.videoMeta.fps->Float.fromInt)
-      ->Utils.Duration.formatSeconds
-      ->Canvas2d.fillText(ctx, ~x=x +. 8., ~y=14.)
+      // Show timestamp every few slots based on zoom level
+      if mod(frame / timeIntervalFrames, full_timestamp_each_steps) === 0 {
+        ctx->Canvas2d.font("12px sans-serif")
+        ctx->Canvas2d.setFillStyle(String, "#64748b")
+
+        frame
+        ->Float.fromInt
+        ->Utils.Math.divideFloat(editorContext.videoMeta.fps->Float.fromInt)
+        ->Utils.Duration.formatSeconds
+        ->Canvas2d.fillText(ctx, ~x=x +. 8., ~y=14.)
+      }
     }
-  })
+
+    currentFrame := currentFrame.contents + timeIntervalFrames
+    iterations := iterations.contents + 1
+  }
 }
 
 @react.component
 let make = (~size: canvasSize) => {
   let canvasRef = React.useRef(Js.Nullable.null)
   let editorContext = EditorContext.useEditorContext()
+  let (player, _) = editorContext.usePlayer()
 
+  let (throttledViewportOffset, _) = UseDebounce.useThrottle(player.viewportOffset, ~ms=16)
   useCanvasScale(canvasRef, size)
 
-  React.useEffect1(() => {
+  // Separate effect for fast elements (time slots, scenes, audio)
+  React.useEffect2(() => {
     canvasRef.current
     ->Js.Nullable.toOption
     ->Belt.Option.map(element => {
       let ctx = Webapi.Canvas.CanvasElement.getContext2d(element)
 
+      // Clear only the necessary area instead of full canvas
+      ctx->Canvas2d.clearRect(~x=0., ~y=0., ~w=size.scaledWidth, ~h=size.scaledHeight)
+
       ctx->renderTimeSlots(size, editorContext)
       ctx->renderScenes(size, editorContext)
-
       ctx->Canvas2d.save
       ctx->renderAudioMap(size, editorContext)
       ctx->Canvas2d.restore
-      ctx->renderMainScene(size, editorContext)
+
 
       ()
     })
     ->ignore
 
     None
-  }, [size])
+  }, (size, player.viewportOffset))
+
+  // Separate throttled effect for main scene (expensive preview frames)
+  React.useEffect2(() => {
+    canvasRef.current
+    ->Js.Nullable.toOption
+    ->Belt.Option.map(element => {
+      let ctx = Webapi.Canvas.CanvasElement.getContext2d(element)
+      ctx->renderMainScene(size, editorContext)
+      ()
+    })
+    ->ignore
+
+    None
+  }, (size, throttledViewportOffset))
 
   <canvas
     className="absolute inset-0"

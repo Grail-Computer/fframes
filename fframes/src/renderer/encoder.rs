@@ -1,3 +1,5 @@
+use rand::rand_core;
+
 use super::{
     FFramesLogger,
     renderer_error::{self, RenderEncodingError},
@@ -7,8 +9,8 @@ use super::{
 pub use super::{encoder_frame::EncoderFrame, renderer_error::RenderEncodingResult};
 use crate::ffmpeg_sys_fframes::*;
 use crate::{RenderOptions, ffmpeg_action};
-use std::ops::Range;
 use std::path::Path;
+use std::{collections::LinkedList, ops::Range};
 use std::{
     ffi::{CStr, CString},
     os::raw::c_char,

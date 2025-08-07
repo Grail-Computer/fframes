@@ -11,9 +11,26 @@ import * as Pervasives from "rescript/lib/es6/pervasives.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as MediaLoader from "../../services/mediaLoader.bs.js";
+import * as UseDebounce from "../../bindings/UseDebounce.bs.js";
 import * as EditorContext from "../../EditorContext.bs.js";
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 import * as Webapi__Canvas__Canvas2d from "bs-webapi/src/Webapi/Canvas/Webapi__Canvas__Canvas2d.bs.js";
+
+var previewImageCache = {
+  contents: undefined
+};
+
+function cleanupCache(param) {
+  var currentSize = Belt_MapString.size(previewImageCache.contents);
+  if (currentSize <= 500) {
+    return ;
+  }
+  var keysArray = Belt_MapString.keysToArray(previewImageCache.contents);
+  var keepSize = 250;
+  var keysToRemove = Belt_Array.slice(keysArray, 0, currentSize - keepSize | 0);
+  previewImageCache.contents = Belt_Array.reduce(keysToRemove, previewImageCache.contents, Belt_MapString.remove);
+  
+}
 
 function renderRoundedRect(ctx, x, y, width, height, radius, param) {
   ctx.beginPath();
@@ -26,11 +43,50 @@ function renderRoundedRect(ctx, x, y, width, height, radius, param) {
   
 }
 
-function clipOverTimeLineElement(ctx, y, width, fill) {
-  renderRoundedRect(ctx, 32, y, width, 120, 12.0, undefined);
+function fillRoundedRect(ctx, x, y, width, height, radius, param) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.fill();
+  
+}
+
+function renderRoundedCorners(ctx, x, y, width, height, topLeftOpt, topRightOpt, bottomLeftOpt, bottomRightOpt, param) {
+  var topLeft = topLeftOpt !== undefined ? topLeftOpt : 0.0;
+  var topRight = topRightOpt !== undefined ? topRightOpt : 0.0;
+  var bottomLeft = bottomLeftOpt !== undefined ? bottomLeftOpt : 0.0;
+  var bottomRight = bottomRightOpt !== undefined ? bottomRightOpt : 0.0;
+  ctx.beginPath();
+  ctx.moveTo(x + topLeft, y);
+  ctx.lineTo(x + width - topRight, y);
+  if (topRight > 0.0) {
+    ctx.arcTo(x + width, y, x + width, y + topRight, topRight);
+  }
+  ctx.lineTo(x + width, y + height - bottomRight);
+  if (bottomRight > 0.0) {
+    ctx.arcTo(x + width, y + height, x + width - bottomRight, y + height, bottomRight);
+  }
+  ctx.lineTo(x + bottomLeft, y + height);
+  if (bottomLeft > 0.0) {
+    ctx.arcTo(x, y + height, x, y + height - bottomLeft, bottomLeft);
+  }
+  ctx.lineTo(x, y + topLeft);
+  if (topLeft > 0.0) {
+    ctx.arcTo(x, y, x + topLeft, y, topLeft);
+  }
+  ctx.closePath();
+  
+}
+
+function clipOverTimeLineElement(ctx, size, y, width, fill) {
+  var x = size.timelineMarginLeft;
+  renderRoundedRect(ctx, x, y, width, 120, 12.0, undefined);
   ctx.clip();
   Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, fill);
-  ctx.fillRect(32, y, width, 120);
+  ctx.fillRect(x, y, width, 120);
   
 }
 
@@ -49,22 +105,29 @@ var sceneColors = [
 function renderScenes(ctx, size, editorContext) {
   Belt_Option.forEach(Caml_option.nullable_to_opt(editorContext.videoMeta.scenesTimeline), (function (array) {
           array.forEach(function (scene, i) {
+                if (scene.start >= editorContext.videoMeta.durationInFrames) {
+                  return ;
+                }
                 var sceneColor = Belt_Array.get(sceneColors, Caml_int32.mod_(i, sceneColors.length));
                 Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, Utils.$$Option.unwrapOr(sceneColor, "#fbbf24"));
-                var x1 = CanvasSize.frameToX(scene.start, size);
-                var x2 = CanvasSize.frameToX(scene.end, size);
+                var clampedStart = Math.min(scene.start, editorContext.videoMeta.durationInFrames);
+                var clampedEnd = Math.min(scene.end, editorContext.videoMeta.durationInFrames);
+                var x1 = CanvasSize.frameToX(clampedStart, size);
+                var x2 = CanvasSize.frameToX(clampedEnd, size);
                 var overflowSafeX = Utils.$$Option.unwrapOr(Belt_Option.map(array[i - 1 | 0], (function (prev) {
-                            return CanvasSize.frameToX(Math.max(prev.end, scene.start), size);
+                            return CanvasSize.frameToX(Math.max(Math.min(prev.end, editorContext.videoMeta.durationInFrames), clampedStart), size);
                           })), x1);
-                var width = x2 - x1;
+                var timelineEnd = size.timelineMarginLeft + size.maxSceneWidth;
+                var constrainedX2 = Math.min(x2, timelineEnd);
+                var width = constrainedX2 - x1;
                 ctx.globalAlpha = 1;
                 ctx.beginPath();
-                ctx.moveTo(x2, 24);
-                ctx.lineTo(x2 - 12, 24);
-                ctx.lineTo(x2, 36);
+                ctx.moveTo(constrainedX2, 24);
+                ctx.lineTo(constrainedX2 - 12, 24);
+                ctx.lineTo(constrainedX2, 36);
                 ctx.fill();
                 ctx.globalAlpha = 0.8;
-                ctx.fillRect(overflowSafeX, 24, x2 - overflowSafeX, 4);
+                ctx.fillRect(overflowSafeX, 24, constrainedX2 - overflowSafeX, 4);
                 ctx.closePath();
                 ctx.save();
                 ctx.rect(x1, 24, width - 4, 20);
@@ -84,21 +147,70 @@ function renderScenes(ctx, size, editorContext) {
   
 }
 
+function renderFrameWithClipping(ctx, image, previewX, renderWidth, frameNumber, i, videoEndX, endX, editorContext) {
+  var videoConstrainedWidth = videoEndX - previewX;
+  var timelineConstrainedWidth = endX - previewX;
+  var clipWidthFloat = Math.min(videoConstrainedWidth, timelineConstrainedWidth);
+  var clipWidth = clipWidthFloat | 0;
+  if (!(previewX < videoEndX && clipWidth > 0)) {
+    return ;
+  }
+  ctx.save();
+  var frameExtendsPastVideoEnd = previewX + clipWidthFloat >= videoEndX;
+  var isActualLastFrame = frameNumber >= (editorContext.videoMeta.durationInFrames - 1 | 0);
+  var isFirstFrame = i === 0;
+  var isLastFrame = isActualLastFrame || frameExtendsPastVideoEnd;
+  renderRoundedCorners(ctx, previewX, 64, clipWidth, 120, isFirstFrame ? 16.0 : 0.0, isLastFrame ? 16.0 : 0.0, isFirstFrame ? 16.0 : 0.0, isLastFrame ? 16.0 : 0.0, undefined);
+  ctx.clip();
+  ctx.drawImage(image, previewX | 0, 64, renderWidth, 120);
+  ctx.restore();
+  
+}
+
 function renderMainScene(ctx, size, editorContext) {
   var aspectRatio = editorContext.videoMeta.width / editorContext.videoMeta.height;
   var width = Math.floor(120 * aspectRatio);
-  clipOverTimeLineElement(ctx, 64, size.maxSceneWidth, "#000");
-  var maxFramesInScene = Caml_int32.div(size.maxSceneWidth | 0, width);
-  var framesBreak = Caml_int32.div(editorContext.videoMeta.durationInFrames, maxFramesInScene);
-  Belt_Range.forEach(0, maxFramesInScene, (function (i) {
-          var svg = editorContext.wasmController.render_preview_frame(BigInt(Math.imul(i, framesBreak)));
+  var pixelsPerFrame = size.frameToPxRatio;
+  var startX = size.timelineMarginLeft;
+  var videoEndX = CanvasSize.frameToX(editorContext.videoMeta.durationInFrames - 1 | 0, size);
+  var rightMargin = size.timelineMarginRight;
+  var endX = startX + size.maxSceneWidth;
+  var frameStep = pixelsPerFrame > width ? 1 : Math.ceil(width / pixelsPerFrame) | 0;
+  var effectiveFrameWidth = pixelsPerFrame > width ? pixelsPerFrame : width;
+  var adjustedWidth = size.maxSceneWidth - rightMargin;
+  var numPreviews = (Math.ceil(adjustedWidth / effectiveFrameWidth) | 0) + 1 | 0;
+  var firstVisibleFrame = Math.floor(size.viewportOffset / pixelsPerFrame) | 0;
+  var adjustedFirstFrame = firstVisibleFrame < 0 ? 0 : firstVisibleFrame;
+  Belt_Range.forEach(0, numPreviews, (function (i) {
+          var frameForThisPreview = adjustedFirstFrame + Math.imul(i, frameStep) | 0;
+          var frameNumber = frameForThisPreview >= editorContext.videoMeta.durationInFrames ? editorContext.videoMeta.durationInFrames - 1 | 0 : (
+              frameForThisPreview < 0 ? 0 : frameForThisPreview
+            );
+          var previewX;
+          if (pixelsPerFrame > width) {
+            previewX = CanvasSize.frameToX(frameNumber, size);
+          } else {
+            var startX$1 = CanvasSize.frameToX(adjustedFirstFrame, size);
+            previewX = startX$1 + i * width;
+          }
+          var actualEndX = Math.min(videoEndX, endX);
+          if (!(previewX >= startX - width && previewX < actualEndX && frameNumber < editorContext.videoMeta.durationInFrames)) {
+            return ;
+          }
+          var cacheKey = String(frameNumber) + "_" + String(width) + "_" + String(120);
+          var cachedImage = Belt_MapString.get(previewImageCache.contents, cacheKey);
+          if (cachedImage !== undefined) {
+            var baseRenderWidth = pixelsPerFrame > width ? pixelsPerFrame | 0 : width + 1 | 0;
+            return renderFrameWithClipping(ctx, Caml_option.valFromOption(cachedImage), previewX, baseRenderWidth, frameNumber, i, videoEndX, endX, editorContext);
+          }
+          var svg = editorContext.wasmController.render_preview_frame(BigInt(frameNumber));
           var image = new Image(width, 120);
           image.src = "data:image/svg+xml;base64,".concat(window.btoa(svg));
           image.onload = (function (param) {
-              ctx.save();
-              ctx.drawImage(image, 32 + Math.imul(i, width) | 0, 64, width, 120);
-              ctx.restore();
-              
+              previewImageCache.contents = Belt_MapString.set(previewImageCache.contents, cacheKey, image);
+              cleanupCache(undefined);
+              var baseRenderWidth = pixelsPerFrame > width ? pixelsPerFrame | 0 : width + 1 | 0;
+              return renderFrameWithClipping(ctx, image, previewX, baseRenderWidth, frameNumber, i, videoEndX, endX, editorContext);
             });
           
         }));
@@ -163,7 +275,10 @@ function renderAudioMap(ctx, size, editorContext) {
                                     return match[1];
                                   })), startY);
                         var y = 184 + startY$1 | 0;
-                        var width = (track.end - track.start | 0) * size.frameToPxRatio;
+                        var originalWidth = (track.end - track.start | 0) * size.frameToPxRatio;
+                        var timelineEnd = size.timelineMarginLeft + size.maxSceneWidth;
+                        var constrainedEndX = Math.min(x + originalWidth, timelineEnd);
+                        var width = constrainedEndX - x;
                         xStack.push([
                               x + width,
                               startY$1
@@ -192,43 +307,96 @@ function renderAudioMap(ctx, size, editorContext) {
 }
 
 function renderTimeSlots(ctx, size, editorContext) {
-  var stepsCount = Math.floor(Utils.$$Math.divideFloat(size.maxSceneWidth, 100)) | 0;
-  var stepDuration = Caml_int32.div(editorContext.videoMeta.durationInFrames, stepsCount);
-  return Belt_Range.forEach(0, stepsCount, (function (i) {
-                var x = Math.imul(i, 100) + 32 | 0;
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, 18);
-                Webapi__Canvas__Canvas2d.setStrokeStyle(ctx, /* String */0, "#475569");
-                ctx.stroke();
-                if (i % 2 === 0) {
-                  ctx.font = "12px sans-serif";
-                  Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#64748b");
-                  ctx.fillText(Utils.Duration.formatSeconds(Utils.$$Math.divideFloat(Math.imul(i, stepDuration), editorContext.videoMeta.fps)), x + 8, 14, undefined);
-                  return ;
-                }
-                
-              }));
+  var pixelsPerFrame = size.frameToPxRatio;
+  var pixelsPerSecond = pixelsPerFrame * editorContext.videoMeta.fps;
+  var match = pixelsPerSecond > 200.0 ? [
+      editorContext.videoMeta.fps / 2 | 0,
+      2
+    ] : (
+      pixelsPerSecond > 100.0 ? [
+          editorContext.videoMeta.fps,
+          2
+        ] : (
+          pixelsPerSecond > 50.0 ? [
+              (editorContext.videoMeta.fps << 1),
+              2
+            ] : (
+              pixelsPerSecond > 20.0 ? [
+                  Math.imul(editorContext.videoMeta.fps, 5),
+                  2
+                ] : [
+                  Math.imul(editorContext.videoMeta.fps, 10),
+                  2
+                ]
+            )
+        )
+    );
+  var full_timestamp_each_steps = match[1];
+  var timeIntervalFrames = match[0];
+  var startFrame = size.viewportOffset / pixelsPerFrame | 0;
+  var endFrame = (size.viewportOffset + size.maxSceneWidth) / pixelsPerFrame | 0;
+  var firstSlotFrame = Math.imul(Caml_int32.div(startFrame, timeIntervalFrames), timeIntervalFrames) - timeIntervalFrames | 0;
+  var lastSlotFrame = endFrame + timeIntervalFrames | 0;
+  var currentFrame = firstSlotFrame;
+  var iterations = 0;
+  while(currentFrame <= lastSlotFrame && iterations < 10000 && timeIntervalFrames > 0) {
+    var frame = currentFrame;
+    if (frame >= 0 && frame <= editorContext.videoMeta.durationInFrames) {
+      var x = CanvasSize.frameToX(frame, size);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 18);
+      Webapi__Canvas__Canvas2d.setStrokeStyle(ctx, /* String */0, "rgba(71, 85, 105, 0.3)");
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+      if (Caml_int32.mod_(Caml_int32.div(frame, timeIntervalFrames), full_timestamp_each_steps) === 0) {
+        ctx.font = "12px sans-serif";
+        Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#64748b");
+        ctx.fillText(Utils.Duration.formatSeconds(Utils.$$Math.divideFloat(frame, editorContext.videoMeta.fps)), x + 8, 14, undefined);
+      }
+      
+    }
+    currentFrame = currentFrame + timeIntervalFrames | 0;
+    iterations = iterations + 1 | 0;
+  };
+  
 }
 
 function SceneMapCanvas(Props) {
   var size = Props.size;
   var canvasRef = React.useRef(null);
   var editorContext = EditorContext.useEditorContext(undefined);
+  var match = Curry._1(editorContext.usePlayer, undefined);
+  var player = match[0];
+  var match$1 = UseDebounce.useThrottle(player.viewportOffset, 16);
   CanvasSize.useCanvasScale(canvasRef, size);
   React.useEffect((function () {
           Belt_Option.map(Caml_option.nullable_to_opt(canvasRef.current), (function (element) {
                   var ctx = element.getContext("2d");
+                  ctx.clearRect(0, 0, size.scaledWidth, size.scaledHeight);
                   renderTimeSlots(ctx, size, editorContext);
                   renderScenes(ctx, size, editorContext);
                   ctx.save();
                   renderAudioMap(ctx, size, editorContext);
                   ctx.restore();
+                  
+                }));
+          
+        }), [
+        size,
+        player.viewportOffset
+      ]);
+  React.useEffect((function () {
+          Belt_Option.map(Caml_option.nullable_to_opt(canvasRef.current), (function (element) {
+                  var ctx = element.getContext("2d");
                   renderMainScene(ctx, size, editorContext);
                   
                 }));
           
-        }), [size]);
+        }), [
+        size,
+        match$1[0]
+      ]);
   return React.createElement("canvas", {
               ref: canvasRef,
               className: "absolute inset-0",
@@ -245,15 +413,23 @@ var Canvas;
 
 var Canvas2d;
 
+var maxCacheSize = 500;
+
 var make = SceneMapCanvas;
 
 export {
   Canvas ,
   Canvas2d ,
+  previewImageCache ,
+  maxCacheSize ,
+  cleanupCache ,
   renderRoundedRect ,
+  fillRoundedRect ,
+  renderRoundedCorners ,
   clipOverTimeLineElement ,
   sceneColors ,
   renderScenes ,
+  renderFrameWithClipping ,
   renderMainScene ,
   renderAudioWaveForm ,
   renderAudioMap ,

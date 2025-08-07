@@ -5,6 +5,8 @@ import * as Web from "../../bindings/Web.bs.js";
 import * as Curry from "rescript/lib/es6/curry.js";
 import * as Hooks from "../../hooks/Hooks.bs.js";
 import * as React from "react";
+import * as Player from "../../Player.bs.js";
+import * as ZoomUtils from "../../utils/ZoomUtils.bs.js";
 import * as CanvasSize from "./canvasSize.bs.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
@@ -26,13 +28,78 @@ function renderSeekBar(ctx, size, playState) {
   
 }
 
-function calculateFrameFromEvent(e, size) {
+function calculateFrameFromEvent(e, size, viewportOffset) {
   var rectLeft = Web.$$Element.targetAsElement(e.target).getBoundingClientRect().left | 0;
-  var x = (e.clientX - rectLeft | 0) - 32 | 0;
-  if (x > 0) {
-    return x * size.pxToFrameRation | 0;
+  var x = (e.clientX - rectLeft | 0) - size.timelineMarginLeft | 0;
+  if (x > 0 && x <= size.maxSceneWidth) {
+    return (x + viewportOffset) * size.pxToFrameRatio | 0;
+  } else if (x > size.maxSceneWidth) {
+    return (size.maxSceneWidth + viewportOffset) * size.pxToFrameRatio | 0;
   } else {
-    return 0;
+    return viewportOffset * size.pxToFrameRatio | 0;
+  }
+}
+
+function handleHorizontalScroll(e, dispatch, player, size, editorContext) {
+  var deltaX = e.deltaX;
+  var deltaY = e.deltaY;
+  if (deltaX !== 0.0 || e.shiftKey) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  var scrollDelta = deltaX !== 0.0 ? deltaX : (
+      e.shiftKey ? deltaY : 0.0
+    );
+  if (scrollDelta === 0.0) {
+    return false;
+  }
+  var scrollAmount = scrollDelta * 1.0;
+  var newOffset = player.viewportOffset + scrollAmount;
+  var totalContentWidth = editorContext.videoMeta.durationInFrames * size.frameToPxRatio;
+  var maxOffset = totalContentWidth > size.maxSceneWidth ? totalContentWidth - size.maxSceneWidth : 0.0;
+  var constrainedOffset = newOffset < 0.0 ? 0.0 : (
+      newOffset > maxOffset ? maxOffset : newOffset
+    );
+  Curry._1(dispatch, {
+        TAG: /* SetViewportOffset */4,
+        _0: constrainedOffset
+      });
+  return true;
+}
+
+function handleWheelZoom(e, dispatch, player, size, editorContext) {
+  var clientX = e.clientX;
+  var rectLeft = Web.$$Element.targetAsElement(e.target).getBoundingClientRect().left | 0;
+  var mouseX = (clientX - rectLeft | 0) - size.timelineMarginLeft | 0;
+  var ctrlKey = e.ctrlKey;
+  var shiftKey = e.shiftKey;
+  var sensitivity = ZoomUtils.getZoomSensitivity(ctrlKey, shiftKey);
+  var deltaY = e.deltaY;
+  var zoomFactor = ZoomUtils.calculateZoomFactorFromDelta(deltaY, player.zoom, sensitivity, undefined);
+  var newZoom = Player.validateZoom(player.zoom * zoomFactor);
+  var newViewportOffset = ZoomUtils.calculateViewportOffsetForCurrentFrameZoom(player.frame, player.zoom, newZoom, player.viewportOffset, size.maxSceneWidth, editorContext.videoMeta.durationInFrames, size.timelineMarginLeft);
+  if (mouseX >= 0 && mouseX <= size.maxSceneWidth) {
+    return Curry._1(dispatch, {
+                TAG: /* BatchZoomUpdate */5,
+                _0: newZoom,
+                _1: newViewportOffset
+              });
+  } else {
+    return Curry._1(dispatch, {
+                TAG: /* SetZoom */3,
+                _0: newZoom
+              });
+  }
+}
+
+function handleWheel(e, dispatch, player, size, editorContext) {
+  var deltaX = e.deltaX;
+  var isHorizontalIntent = Math.abs(deltaX) > 0.1 || e.shiftKey;
+  if (isHorizontalIntent) {
+    handleHorizontalScroll(e, dispatch, player, size, editorContext);
+    return ;
+  } else {
+    return handleWheelZoom(e, dispatch, player, size, editorContext);
   }
 }
 
@@ -66,13 +133,13 @@ function SeekBarCanvas(Props) {
         if (player.playState !== /* Playing */0 && document.hasFocus()) {
           return Curry._1(dispatch, {
                       TAG: /* NewFrame */1,
-                      _0: calculateFrameFromEvent(e, size)
+                      _0: calculateFrameFromEvent(e, size, player.viewportOffset)
                     });
         }
         
       });
   var handleClick = Hooks.useEvent(function (e) {
-        var frame = calculateFrameFromEvent(e, size);
+        var frame = calculateFrameFromEvent(e, size, player.viewportOffset);
         Curry._1(dispatch, {
               TAG: /* Seek */0,
               _0: frame
@@ -95,7 +162,10 @@ function SeekBarCanvas(Props) {
               height: String(Math.floor(size.height)) + "px",
               width: String(Math.floor(size.width)) + "px",
               onClick: handleClick,
-              onMouseMove: handleMouseMove
+              onMouseMove: handleMouseMove,
+              onWheel: (function (e) {
+                  return handleWheel(e, dispatch, player, size, editorContext);
+                })
             });
 }
 
@@ -110,6 +180,9 @@ export {
   Canvas2d ,
   renderSeekBar ,
   calculateFrameFromEvent ,
+  handleHorizontalScroll ,
+  handleWheelZoom ,
+  handleWheel ,
   make ,
   
 }

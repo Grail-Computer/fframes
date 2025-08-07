@@ -24,18 +24,52 @@ function validateVolume(param) {
   return Curry._3(func, param, 0, 100);
 }
 
+var func$1 = Utils.$$Math.minMax;
+
+function validateZoom(param) {
+  return Curry._3(func$1, param, 0.1, 10.0);
+}
+
 function MakePlayer(Wasm) {
   var sceneIndex = Belt_Option.flatMap(Dom_storage.getItem("ffscene", localStorage), Js__Int.fromString);
   var savedMagnet = Belt_Option.flatMap(Dom_storage.getItem(Wasm.videoMeta.name + "_ffmagnet", localStorage), Js__Int.fromString);
+  var savedZoom = Belt_Option.getWithDefault(Belt_Option.flatMap(Dom_storage.getItem("ffzoom", localStorage), (function (str) {
+              var parsed = Number(str);
+              if (isNaN(parsed)) {
+                return ;
+              } else {
+                return validateZoom(parsed);
+              }
+            })), 1.0);
+  var savedViewportOffset = Belt_Option.getWithDefault(Belt_Option.flatMap(Dom_storage.getItem("ffviewportoffset", localStorage), (function (str) {
+              var parsed = Number(str);
+              if (isNaN(parsed) || parsed < 0.0) {
+                return ;
+              } else {
+                return parsed;
+              }
+            })), 0.0);
   var match = Wasm.videoMeta.scenesTimeline;
-  var initialFrame = Utils.$$Option.unwrapOr(savedMagnet !== undefined ? Utils.$$Option.some(Math.min(savedMagnet, Wasm.videoMeta.durationInFrames)) : (
-          !(match == null) && sceneIndex !== undefined ? Belt_Option.map(match[sceneIndex], (function (scene) {
-                    return scene.start;
-                  })) : Belt_Option.flatMap(Dom_storage.getItem("fframe", localStorage), Js__Int.fromString)
-        ), 0);
+  var tmp;
+  var exit = 0;
+  if (savedMagnet !== undefined) {
+    tmp = Utils.$$Option.some(Math.min(savedMagnet, Wasm.videoMeta.durationInFrames));
+  } else if ((match == null) || !(sceneIndex !== undefined && sceneIndex >= 0 && sceneIndex < match.length)) {
+    exit = 1;
+  } else {
+    tmp = Belt_Option.map(match[sceneIndex], (function (scene) {
+            return scene.start;
+          }));
+  }
+  if (exit === 1) {
+    tmp = Belt_Option.map(Belt_Option.flatMap(Dom_storage.getItem("fframe", localStorage), Js__Int.fromString), (function (frame) {
+            return Math.min(Math.max(0, frame), Wasm.videoMeta.durationInFrames);
+          }));
+  }
+  var initialFrame = Utils.$$Option.unwrapOr(tmp, 0);
   var savedValue = Dom_storage.getItem("ffvolume", localStorage);
   var volume = savedValue !== undefined ? (
-      Wasm.videoMeta.hasAudio ? Js__Int.fromString(savedValue) : undefined
+      Wasm.videoMeta.hasAudio ? Belt_Option.map(Js__Int.fromString(savedValue), validateVolume) : undefined
     ) : (
       Wasm.videoMeta.hasAudio ? 60 : undefined
     );
@@ -47,7 +81,9 @@ function MakePlayer(Wasm) {
         fpsLimit: Wasm.videoMeta.fps,
         svg: Utils.$$Option.some(Wasm.controller.render_frame(BigInt(0))),
         volume: volume,
-        magnet: savedMagnet
+        magnet: savedMagnet,
+        zoom: savedZoom,
+        viewportOffset: savedViewportOffset
       }) : ({
         frame: initialFrame,
         startPlayingFrame: initialFrame,
@@ -55,11 +91,15 @@ function MakePlayer(Wasm) {
         fpsLimit: Wasm.videoMeta.fps,
         svg: undefined,
         volume: volume,
-        magnet: savedMagnet
+        magnet: savedMagnet,
+        zoom: savedZoom,
+        viewportOffset: savedViewportOffset
       });
   var PlayerState = {
     sceneIndex: sceneIndex,
     savedMagnet: savedMagnet,
+    savedZoom: savedZoom,
+    savedViewportOffset: savedViewportOffset,
     initialFrame: initialFrame,
     volume: volume,
     initial: initial
@@ -91,7 +131,9 @@ function MakePlayer(Wasm) {
                     fpsLimit: state.fpsLimit,
                     svg: state.svg,
                     volume: state.volume,
-                    magnet: state.magnet
+                    magnet: state.magnet,
+                    zoom: state.zoom,
+                    viewportOffset: state.viewportOffset
                   };
         case /* Play */1 :
             if (state.frame <= 0 || state.frame >= Wasm.videoMeta.durationInFrames) {
@@ -102,7 +144,9 @@ function MakePlayer(Wasm) {
                       fpsLimit: state.fpsLimit,
                       svg: state.svg,
                       volume: state.volume,
-                      magnet: state.magnet
+                      magnet: state.magnet,
+                      zoom: state.zoom,
+                      viewportOffset: state.viewportOffset
                     };
             } else {
               return {
@@ -112,7 +156,9 @@ function MakePlayer(Wasm) {
                       fpsLimit: state.fpsLimit,
                       svg: state.svg,
                       volume: state.volume,
-                      magnet: state.magnet
+                      magnet: state.magnet,
+                      zoom: state.zoom,
+                      viewportOffset: state.viewportOffset
                     };
             }
         case /* Pause */2 :
@@ -123,7 +169,9 @@ function MakePlayer(Wasm) {
                     fpsLimit: state.fpsLimit,
                     svg: state.svg,
                     volume: state.volume,
-                    magnet: state.magnet
+                    magnet: state.magnet,
+                    zoom: state.zoom,
+                    viewportOffset: state.viewportOffset
                   };
         case /* SetMagnet */3 :
             if (state.magnet === state.frame) {
@@ -134,7 +182,9 @@ function MakePlayer(Wasm) {
                       fpsLimit: state.fpsLimit,
                       svg: state.svg,
                       volume: state.volume,
-                      magnet: undefined
+                      magnet: undefined,
+                      zoom: state.zoom,
+                      viewportOffset: state.viewportOffset
                     };
             } else {
               return {
@@ -144,7 +194,9 @@ function MakePlayer(Wasm) {
                       fpsLimit: state.fpsLimit,
                       svg: state.svg,
                       volume: state.volume,
-                      magnet: state.frame
+                      magnet: state.frame,
+                      zoom: state.zoom,
+                      viewportOffset: state.viewportOffset
                     };
             }
         
@@ -162,7 +214,49 @@ function MakePlayer(Wasm) {
                     fpsLimit: state.fpsLimit,
                     svg: state.svg,
                     volume: action._0,
-                    magnet: state.magnet
+                    magnet: state.magnet,
+                    zoom: state.zoom,
+                    viewportOffset: state.viewportOffset
+                  };
+        case /* SetZoom */3 :
+            return {
+                    frame: state.frame,
+                    startPlayingFrame: state.startPlayingFrame,
+                    playState: state.playState,
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume,
+                    magnet: state.magnet,
+                    zoom: validateZoom(action._0),
+                    viewportOffset: state.viewportOffset
+                  };
+        case /* SetViewportOffset */4 :
+            var offset = action._0;
+            Dom_storage.setItem("ffviewportoffset", offset.toString(), localStorage);
+            return {
+                    frame: state.frame,
+                    startPlayingFrame: state.startPlayingFrame,
+                    playState: state.playState,
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume,
+                    magnet: state.magnet,
+                    zoom: state.zoom,
+                    viewportOffset: offset
+                  };
+        case /* BatchZoomUpdate */5 :
+            var offset$1 = action._1;
+            Dom_storage.setItem("ffviewportoffset", offset$1.toString(), localStorage);
+            return {
+                    frame: state.frame,
+                    startPlayingFrame: state.startPlayingFrame,
+                    playState: state.playState,
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume,
+                    magnet: state.magnet,
+                    zoom: validateZoom(action._0),
+                    viewportOffset: offset$1
                   };
         
       }
@@ -178,7 +272,9 @@ function MakePlayer(Wasm) {
               fpsLimit: state.fpsLimit,
               svg: svg,
               volume: state.volume,
-              magnet: state.magnet
+              magnet: state.magnet,
+              zoom: state.zoom,
+              viewportOffset: state.viewportOffset
             };
     }
     var frame$2 = action._0;
@@ -192,7 +288,9 @@ function MakePlayer(Wasm) {
             fpsLimit: state.fpsLimit,
             svg: svg$1,
             volume: state.volume,
-            magnet: state.magnet
+            magnet: state.magnet,
+            zoom: state.zoom,
+            viewportOffset: state.viewportOffset
           };
   };
   var onFrame = function (dispatch, secondsFromStart) {
@@ -253,6 +351,11 @@ function MakePlayer(Wasm) {
             var volume = action._0;
             AnimationRuntime.AudioRuntime.setVolume(volume);
             return Dom_storage.setItem("ffvolume", volume.toString(), localStorage);
+        case /* SetViewportOffset */4 :
+            return ;
+        case /* SetZoom */3 :
+        case /* BatchZoomUpdate */5 :
+            return Dom_storage.setItem("ffzoom", action._0.toString(), localStorage);
         
       }
     }
@@ -282,12 +385,19 @@ var min_volume = 0;
 
 var max_volume = 100;
 
+var min_zoom = 0.1;
+
+var max_zoom = 10.0;
+
 export {
   currentFps ,
   get_magnet_key ,
   min_volume ,
   max_volume ,
   validateVolume ,
+  min_zoom ,
+  max_zoom ,
+  validateZoom ,
   MakePlayer ,
   
 }

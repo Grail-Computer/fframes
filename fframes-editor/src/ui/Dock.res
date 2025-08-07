@@ -58,10 +58,19 @@ let getFpsMarker = (fps, desiredFps) => {
 type dir = Back | Forth
 
 @react.component
-let make = (~fullScreenToggler: Hooks.toggle) => {
+let make = (
+  ~fullScreenToggler: Hooks.toggle,
+  ~timelineSize: option<UseEditorLayout.sectionSize>=?,
+) => {
   let context = EditorContext.useEditorContext()
   let (player, dispatch) = context.usePlayer()
   let (isCollapsed, collapsedToggle) = Hooks.useToggle(context.options.hideDock)
+
+  // Only use viewport follow if timeline size is available
+  let followFrameToViewport = switch timelineSize {
+  | Some(size) => Some(UseViewportFollow.useViewportFollow(size))
+  | None => None
+  }
 
   let (debouncedFps, _) = UseDebounce.useThrottle(
     AnimationRuntime.AudioRuntime.runtimeFps.contents,
@@ -94,11 +103,15 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
   })
 
   let handleSeekLeft = Hooks.useEvent(() => {
-    dispatch(Seek(player.frame - 2 * context.videoMeta.fps))
+    let targetFrame = player.frame - 2 * context.videoMeta.fps
+    dispatch(Seek(targetFrame))
+    followFrameToViewport->Belt.Option.forEach(follow => follow(targetFrame))
   })
 
   let handleSeekRight = Hooks.useEvent(() => {
-    dispatch(Seek(player.frame + 2 * context.videoMeta.fps))
+    let targetFrame = player.frame + 2 * context.videoMeta.fps
+    dispatch(Seek(targetFrame))
+    followFrameToViewport->Belt.Option.forEach(follow => follow(targetFrame))
   })
 
   let toggleMute = Hooks.useEvent(() => {
@@ -117,11 +130,15 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
   })
 
   let seekToStart = Hooks.useEvent(() => {
-    dispatch(Seek(player.magnet->Utils.Option.unwrapOr(0)))
+    let targetFrame = player.magnet->Utils.Option.unwrapOr(0)
+    dispatch(Seek(targetFrame))
+    followFrameToViewport->Belt.Option.forEach(follow => follow(targetFrame))
   })
 
   let seekToEnd = Hooks.useEvent(() => {
-    dispatch(Seek(context.videoMeta.durationInFrames))
+    let targetFrame = context.videoMeta.durationInFrames
+    dispatch(Seek(targetFrame))
+    followFrameToViewport->Belt.Option.forEach(follow => follow(targetFrame))
   })
 
   let switchScene = Hooks.useEvent(dir => {
@@ -135,7 +152,10 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
 
       timeline[nextSceneIndex]
     })
-    ->Option.forEach(scene => dispatch(Seek(scene.start)))
+    ->Option.forEach(scene => {
+      dispatch(Seek(scene.start))
+      followFrameToViewport->Belt.Option.forEach(follow => follow(scene.start))
+    })
   })
 
   let toggleDock = Hooks.useEvent(() => {
@@ -286,6 +306,8 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
     <DockButton onClick=fullScreenToggler.toggle label="Turn on/off full-screen mode">
       <FullScreenIcon className="h-6 w-6" />
     </DockButton>
+    <DockSpace> <ZoomControls /> </DockSpace>
+    <DockDivider />
     <DockButton onClick=toggleDock label="Show/Hide dock controls">
       <CollapseIcon
         className={Cx.cx(["h-6 w-6 transition-transform", isCollapsed ? "rotate-180" : ""])}

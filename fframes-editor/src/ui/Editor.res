@@ -98,7 +98,6 @@ let make = () => {
         )
         ->Utils.Option.unwrapOr(React.null)
       }
-
       // Preview
       <div
         id="editor-preview"
@@ -114,16 +113,18 @@ let make = () => {
         })}
       </div>
     </div>
-
-    // Timeline
-    {layout.timeLine
-    ->Belt.Option.map(sectionSize =>
-      <div
-        style={sectionSize->UseEditorLayout.sizeToStyle} className="shadow-lg w-screen bg-gray-800">
-        <Timeline sectionSize />
-      </div>
-    )
-    ->Utils.Option.unwrapOr(React.null)}
-    <Dock fullScreenToggler />
+    {
+      // Timeline
+      layout.timeLine
+      ->Belt.Option.map(sectionSize =>
+        <div
+          style={sectionSize->UseEditorLayout.sizeToStyle}
+          className="shadow-lg w-screen bg-gray-800">
+          <Timeline sectionSize />
+        </div>
+      )
+      ->Utils.Option.unwrapOr(React.null)
+    }
+    <Dock fullScreenToggler timelineSize=?{layout.timeLine} />
   </div>
 }

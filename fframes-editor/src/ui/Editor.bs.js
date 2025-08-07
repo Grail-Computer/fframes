@@ -50,6 +50,12 @@ function Editor(Props) {
                 }));
           
         }), []);
+  var tmp = {
+    fullScreenToggler: match$1[1]
+  };
+  if (layout.timeLine !== undefined) {
+    tmp.timelineSize = Caml_option.valFromOption(layout.timeLine);
+  }
   return React.createElement("div", {
               className: "w-screen h-screen bg-gray-900 overflow-hidden relative",
               id: "fframes-editor"
@@ -121,9 +127,7 @@ function Editor(Props) {
                                   }, React.createElement(Timeline.make, {
                                         sectionSize: sectionSize
                                       }));
-                      })), null), React.createElement(Dock.make, {
-                  fullScreenToggler: match$1[1]
-                }));
+                      })), null), React.createElement(Dock.make, tmp));
 }
 
 var make = Editor;

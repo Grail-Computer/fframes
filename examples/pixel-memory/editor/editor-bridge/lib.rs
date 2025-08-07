@@ -1,5 +1,6 @@
 #![cfg(target_arch = "wasm32")]
 use fframes_editor_controller::prelude::*;
+use pixel_memory_example::rand::SeedableRng;
 use pixel_memory_example::{rand, PixelMedia, PixelVideo, RandomPhotos};
 
 impl_wasm_bridge_for!(PixelVideo<'static>, PixelMedia);
@@ -14,15 +15,18 @@ lazy_static! {
 pub fn create_wasm_bridge() -> WasmBridge {
     console_error_panic_hook::set_once();
 
+    // for more predictable results, you can use a fixed seed:
+    // let mut range = rand::rngs::StdRng::seed_from_u64(28);
+    let mut range = rand::thread_rng();
+
+    let photos = RandomPhotos::new_from_static_list(&mut range, &PHOTOS_LIST, &VIDEOS_LIST);
     WasmBridge::new(
         PixelVideo::new_random_scenes(
             "naruto_grief.mp3",
             "Sometimes the smallest things take up the most room in your heart",
-            // for more predictable results, you can use a fixed seed:
-            // &mut rand::rngs::StdRng::seed_from_u64(28),
-            &mut rand::thread_rng(),
+            &mut range,
             None::<&()>,
-            RandomPhotos::new_from_static_list(&mut rand::thread_rng(), &PHOTOS_LIST, &VIDEOS_LIST),
+            photos,
         ),
         &MEDIA,
     )
