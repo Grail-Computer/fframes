@@ -15,15 +15,15 @@ impl Video for HelloWorldVideo<'_> {
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
 
-    fn duration(&self) -> fframes::Duration {
+    fn duration(&self) -> fframes::Duration<'_> {
         fframes::Duration::Seconds(30.)
     }
 
-    fn audio(&self) -> AudioMap {
+    fn audio(&self) -> AudioMap<'_> {
         AudioMap::none()
     }
 
-    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> fframes::Svgr {
+    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> fframes::Svgr<'_> {
         fframes::svgr!(
             <svg
                 xmlns="http://www.w3.org/2000/svg"

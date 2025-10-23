@@ -120,7 +120,10 @@ impl<'a> PixelVideo<'a> {
                     30..40 => Arc::new(ParallaxGridPhotos::generate(rng, tempo, images))
                         as Arc<dyn Scene + 'a>,
                     40..50 => {
-                        let video = images.choose_video();
+                        let Some(video) = images.choose_video() else {
+                            continue;
+                        };
+
                         Arc::new(PixelSingleVideoScene { video }) as Arc<dyn Scene + 'a>
                     }
                     _ => panic!("unhandled scene chance invariance"),
@@ -154,27 +157,31 @@ impl<'a> PixelVideo<'a> {
             duration: total_duration,
             tempo,
         } = *SONGS.get(song).expect("Selected song not available.");
+        let scenes =
+            Self::randomize_scenes(total_duration, tempo, rng, text, provider, &mut images);
+
+        images.print_usage();
 
         Self {
             total_duration,
             bokeh_circles,
             music: song,
-            scenes: Self::randomize_scenes(total_duration, tempo, rng, text, provider, &mut images),
+            scenes,
         }
     }
 }
 
 #[derive(Debug)]
 pub struct RandomPhotos<'a> {
+    original_images_count: usize,
+    original_videos_count: usize,
     all_images: VecDeque<&'a str>,
     all_videos: VecDeque<&'a str>,
 }
 
 impl<'a> RandomPhotos<'a> {
-    pub fn choose_video(&mut self) -> &'a str {
-        self.all_videos
-            .pop_front()
-            .expect("No more videos found, add more to the videos folder")
+    pub fn choose_video(&mut self) -> Option<&'a str> {
+        self.all_videos.pop_front()
     }
 
     pub fn choose_one(&mut self) -> &'a str {
@@ -206,6 +213,8 @@ impl<'a> RandomPhotos<'a> {
         videos.shuffle(rng);
 
         Self {
+            original_images_count: images.len(),
+            original_videos_count: videos.len(),
             all_images: VecDeque::from(images),
             all_videos: VecDeque::from(videos),
         }
@@ -223,8 +232,19 @@ impl<'a> RandomPhotos<'a> {
         videos.shuffle(rng);
 
         Self {
+            original_images_count: images.len(),
+            original_videos_count: videos.len(),
             all_images: VecDeque::from(images),
             all_videos: VecDeque::from(videos),
         }
+    }
+    pub fn print_usage(&self) {
+        fframes::log!(
+            "Used {}/{} images and {}/{} videos",
+            self.original_images_count - self.all_images.len(),
+            self.original_images_count,
+            self.original_videos_count - self.all_videos.len(),
+            self.original_videos_count
+        );
     }
 }

@@ -4,10 +4,11 @@ use crate::{FramedImage, PixelVideo};
 use fframes::{Scene, Svgr, Transform, Video};
 use rand::Rng;
 use std::f32::consts::PI;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::sync::atomic::AtomicBool;
 
 const GOLDEN_RATIO: f32 = 1.618034;
 
-#[derive(Debug)]
 pub struct FibonacciSpiralGallery<'a> {
     duration: f32,
     photo: &'a str,
@@ -144,22 +145,26 @@ impl Scene for FibonacciSpiralGallery<'_> {
     }
 }
 
+static DIRECTION: AtomicBool = AtomicBool::new(false);
+
 impl<'a> FibonacciSpiralGallery<'a> {
-    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
-        let photo = images.choose_one();
-        let base_photo_size = rng.gen_range(850..1000) as f32;
+    pub fn create(photo: &'a str, tempo: f32, rng: &mut impl Rng) -> Self {
+        let base_photo_size = rng.gen_range(1200..1400) as f32;
 
         let fade_in_duration = tempo * rng.gen_range(1..2) as f32;
         let center_duration = tempo * rng.gen_range(2..3) as f32;
-        let spiral_direction = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
 
-        // the amount of full rotations the spiral will make
+        let _ = rng.gen_bool(0.5); // Dummy call to avoid unused variable warning
+
+        let is_left = DIRECTION.load(std::sync::atomic::Ordering::Relaxed);
+        let spiral_direction = if is_left { 1.0 } else { -1.0 };
+        DIRECTION.store(!is_left, std::sync::atomic::Ordering::Relaxed);
+
         let spiral_revolutions = rng.gen_range(1.0..3.0);
         let spiral_out_duration = tempo * spiral_revolutions * PI;
 
         let max_spiral_radius = rng.gen_range(350.0..650.0);
         let total_duration = fade_in_duration + center_duration + spiral_out_duration;
-
         Self {
             duration: total_duration,
             photo,
@@ -171,5 +176,16 @@ impl<'a> FibonacciSpiralGallery<'a> {
             max_spiral_radius,
             spiral_revolutions,
         }
+    }
+
+    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
+        let photo = images.choose_one();
+        Self::create(photo, tempo, rng)
+    }
+}
+
+impl Debug for FibonacciSpiralGallery<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "FibonacciSpiralGallery: {}", self.photo)
     }
 }

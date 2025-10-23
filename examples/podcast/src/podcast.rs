@@ -1,8 +1,6 @@
-use std::hash::Hash;
-
 use fframes::{
     AudioMap, AudioTimestamp, FFramesContext, Frame, SampleSize, Svgr, Video, VisualizeFrameInput,
-    cpu, svgr, ttf_parser,
+    svgr,
 };
 
 #[derive(Debug)]

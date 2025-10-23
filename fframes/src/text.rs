@@ -379,20 +379,35 @@ pub(crate) fn text_wrap_impl<
     let mut structure = vec![(vec![], 0usize)];
     let line_height_in_px = line_height * font.size as f32;
 
-    for word in value.split_whitespace() {
-        let word_width = calc_text_width(word, font_face.as_ref(), font.size, font_variant);
-        let (last_line, last_line_width) = structure.last_mut()?;
+    for line in value.split('\n') {
+        let mut is_first_word_in_line = true;
+        
+        for word in line.split_whitespace() {
+            let word_width = calc_text_width(word, font_face.as_ref(), font.size, font_variant);
+            let (last_line, last_line_width) = structure.last_mut()?;
 
-        if *last_line_width + space_width + word_width > width {
-            structure.push((vec![word.to_owned()], word_width));
-        } else {
-            if *last_line_width != 0 {
-                *last_line_width += space_width;
+            if *last_line_width + space_width + word_width > width {
+                structure.push((vec![word.to_owned()], word_width));
+            } else {
+                if *last_line_width != 0 {
+                    *last_line_width += space_width;
+                }
+
+                last_line.push(word.to_owned());
+
+                *last_line_width += word_width;
             }
+            is_first_word_in_line = false;
+        }
+        
+        if !is_first_word_in_line {
+            structure.push((vec![], 0usize));
+        }
+    }
 
-            last_line.push(word.to_owned());
-
-            *last_line_width += word_width;
+    if let Some((last_words, last_width)) = structure.last() {
+        if last_words.is_empty() && *last_width == 0 {
+            structure.pop();
         }
     }
 

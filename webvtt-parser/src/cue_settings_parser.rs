@@ -54,7 +54,6 @@ fn parse_align(input: Span) -> IResult<Span, Align> {
         })),
     }
 }
-
 fn parse_vertical(input: Span) -> IResult<Span, Vertical> {
     let (input, _) = take_until("vertical:")(input)?;
     let (input, (_, vertical)) =

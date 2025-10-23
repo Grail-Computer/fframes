@@ -4,16 +4,16 @@ use fframes::{
     animation::{Easing, KeyFrame, KeyFramesAnimation},
 };
 use rand::Rng;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 
-#[derive(Debug)]
 pub struct SinglePhotoFloat<'a> {
-    duration: f32,
-    photo: &'a str,
-    transform_animation: KeyFramesAnimation<Transform>,
-    rotation_animation: KeyFramesAnimation<f32>,
+    pub duration: f32,
+    pub photo: &'a str,
+    pub transform_animation: KeyFramesAnimation<Transform>,
+    pub rotation_animation: KeyFramesAnimation<f32>,
 }
 
-const BASE_PHOTO_SIZE: f32 = 700.0;
+const BASE_PHOTO_SIZE: f32 = 950.0;
 
 impl Scene for SinglePhotoFloat<'_> {
     fn overlap(&self) -> fframes::Overlap {
@@ -68,9 +68,7 @@ impl Scene for SinglePhotoFloat<'_> {
 }
 
 impl<'a> SinglePhotoFloat<'a> {
-    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
-        let photo = images.choose_one();
-
+    pub fn create(photo: &'a str, tempo: f32, rng: &mut impl Rng) -> Self {
         let direction_horizontal = rng.gen_bool(0.5);
         let entry_duration = tempo * 3.0;
         let center_duration = tempo * 4.0;
@@ -187,5 +185,16 @@ impl<'a> SinglePhotoFloat<'a> {
             rotation_animation,
             transform_animation,
         }
+    }
+
+    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
+        let photo = images.choose_one();
+        Self::create(photo, tempo, rng)
+    }
+}
+
+impl Debug for SinglePhotoFloat<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "SinglePhotoFloat: {}", self.photo)
     }
 }

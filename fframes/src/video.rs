@@ -20,10 +20,10 @@ pub trait Video: Sync + Sized {
     const BACKGROUND_COLOR: Color = Color::BLACK;
 
     /// Defines either dynamic or inferred duration of the video
-    fn duration(&self) -> Duration;
+    fn duration(&self) -> Duration<'_>;
 
     /// Defines the audio timeline of the video (when and how long audio tracks are played)
-    fn audio(&self) -> AudioMap;
+    fn audio(&self) -> AudioMap<'_>;
 
     /// Defines the scenes timeline of the video.
     /// Each scene is an dyn object which implements the `Scene` trait.

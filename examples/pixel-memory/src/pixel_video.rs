@@ -33,7 +33,7 @@ impl Video for PixelVideo<'_> {
     fn audio(&self) -> AudioMap {
         use fframes::AudioTimestamp::*;
 
-        AudioMap::from([(self.music, Second(0.)..Eof)])
+        AudioMap::from([(self.music, Second(6.0)..Eof)])
     }
 
     fn render_frame<'a>(&'a self, frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
@@ -120,7 +120,7 @@ impl Video for PixelVideo<'_> {
                     cx={
                       frame.animate_runtime(
                         AnimateRuntimeInput {
-                          on_second: (self.total_duration - 5.0).max(0.0),
+                          on_second: (self.total_duration - 6.0).max(0.0),
                           from: circle.cx,
                           to: heart_x,
                           animation_runtime: &HEART_RUNTIME
@@ -130,7 +130,7 @@ impl Video for PixelVideo<'_> {
                     cy={
                       frame.animate_runtime(
                         AnimateRuntimeInput {
-                        on_second: (self.total_duration - 5.0).max(0.0),
+                        on_second: (self.total_duration - 6.0).max(0.0),
                         from: circle.cy,
                           to: heart_y,
                           animation_runtime: &HEART_RUNTIME

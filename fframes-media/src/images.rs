@@ -160,11 +160,7 @@ impl<'a> ImageData<'a> {
         let exif_data = self
             .exif_data
             .get_or_init(|| {
-                let container_bytes = self
-                    .get_container_bytes()
-                    .map_err(|error| panic!("error {error:?}"))
-                    .ok()?;
-
+                let container_bytes = self.get_container_bytes().ok()?;
                 ExifData::parse(container_bytes.as_ref()).ok()
             })
             .as_ref()?;

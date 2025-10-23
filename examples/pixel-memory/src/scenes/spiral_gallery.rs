@@ -5,14 +5,14 @@ use fframes::{
 };
 use rand::Rng;
 use std::f32::consts::PI;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 
 const GOLDEN_RATIO: f32 = 1.618034; // Golden ratio (φ)
-const BASE_PHOTO_SIZE: f32 = 800.0; // Base size for photos in pixels
+const BASE_PHOTO_SIZE: f32 = 1000.0; // Base size for photos in pixels
 const SPIRAL_BASE_RADIUS: f32 = 60.0; // Starting radius for spiral
 const SPIRAL_ANGLE_INCREMENT: f32 = 0.5; // Angle increment in PI units
 const EDGE_OFFSET: f32 = 200.0; // How far off-screen photos start
 
-#[derive(Debug)]
 pub struct SpiralHeapGallery<'a> {
     duration: f32,
     photos: Vec<&'a str>,
@@ -103,13 +103,13 @@ impl Scene for SpiralHeapGallery<'_> {
 }
 
 impl<'a> SpiralHeapGallery<'a> {
-    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
-        let photo_count = rng.gen_range(6..=10);
-        let photos = images.choose(photo_count);
+    pub fn create(photos: &[&'a str], tempo: f32, rng: &mut impl Rng) -> Self {
+        let photo_count = photos.len();
+        let photos = photos.iter().copied().collect::<Vec<_>>();
 
         let last_photo_animation_end = ((photo_count - 1) as f32 * tempo * 4.0) + tempo * 4.0;
         let display_duration = rng.gen_range(5.0..8.0);
-        let total_duration = last_photo_animation_end + display_duration + 0.5;
+        let total_duration = last_photo_animation_end + display_duration;
 
         let mut position_scale_animations = Vec::new();
         let mut rotation_animations = Vec::new();
@@ -125,44 +125,51 @@ impl<'a> SpiralHeapGallery<'a> {
             let theta = i as f32 * SPIRAL_ANGLE_INCREMENT * PI;
             let radius = SPIRAL_BASE_RADIUS * GOLDEN_RATIO.powf(theta / PI);
 
-            let final_x = center_x + radius * theta.cos();
-            let final_y = center_y + radius * theta.sin();
+            let mut final_x = center_x + radius * theta.cos();
+            let mut final_y = center_y + radius * theta.sin();
+
+            // Calculate max photo dimensions to ensure they stay within screen bounds
+            let max_photo_dimension = BASE_PHOTO_SIZE / 2.0; // Half size since photos are centered
+            let margin = 50.0; // Additional margin from screen edge
+
+            // Clamp positions to keep photos within screen boundaries
+            final_x = final_x
+                .max(max_photo_dimension + margin)
+                .min(video_width - max_photo_dimension - margin);
+            final_y = final_y
+                .max(max_photo_dimension + margin)
+                .min(video_height - max_photo_dimension - margin);
 
             final_positions.push((final_x, final_y, theta, radius));
         }
 
         for (i, (final_x, final_y, theta, _)) in final_positions.iter().copied().enumerate() {
             let start_time = i as f32 * tempo * 4.0;
-            let animation_duration = tempo * 4.0; // Single animation duration
-            let angle_normalized = (theta % (2.0 * PI)) / (2.0 * PI); // 0 to 1
+            let animation_duration = tempo * 4.0;
+            let angle_normalized = (theta % (2.0 * PI)) / (2.0 * PI);
 
             let (start_x, start_y) = if angle_normalized < 0.25 {
-                // Top edge
                 (
                     center_x + rng.gen_range(-video_width / 2.0..video_width / 2.0),
                     -EDGE_OFFSET,
                 )
             } else if angle_normalized < 0.5 {
-                // Right edge
                 (
                     video_width + EDGE_OFFSET,
                     center_y + rng.gen_range(-video_height / 2.0..video_height / 2.0),
                 )
             } else if angle_normalized < 0.75 {
-                // Bottom edge
                 (
                     center_x + rng.gen_range(-video_width / 2.0..video_width / 2.0),
                     video_height + EDGE_OFFSET,
                 )
             } else {
-                // Left edge
                 (
                     -EDGE_OFFSET,
                     center_y + rng.gen_range(-video_height / 2.0..video_height / 2.0),
                 )
             };
 
-            // Use a spring animation for more natural movement
             let spring = Easing::Spring {
                 stiffness: rng.gen_range(30.0..45.0),
                 mass: rng.gen_range(4.0..5.0),
@@ -254,5 +261,17 @@ impl<'a> SpiralHeapGallery<'a> {
             rotation_animations,
             opacity_animations,
         }
+    }
+
+    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
+        let photo_count = rng.gen_range(6..=10);
+        let photos = images.choose(photo_count);
+        Self::create(&photos, tempo, rng)
+    }
+}
+
+impl Debug for SpiralHeapGallery<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "SpiralHeapGallery: {}", self.photos.join(", "))
     }
 }

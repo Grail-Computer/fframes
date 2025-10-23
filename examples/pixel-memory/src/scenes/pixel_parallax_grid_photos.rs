@@ -4,8 +4,8 @@ use fframes::{
     animation::{Easing, KeyFrame, KeyFramesAnimation},
 };
 use rand::Rng;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 
-#[derive(Debug)]
 pub struct ParallaxGridPhotos<'a> {
     duration: f32,
     main_animation: KeyFramesAnimation<f32>,
@@ -105,10 +105,14 @@ impl Scene for ParallaxGridPhotos<'_> {
 }
 
 impl<'a> ParallaxGridPhotos<'a> {
-    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
-        let main_length = rng.gen_range(2..=4);
-        let main_photos = images.choose(main_length);
-        let bg_photos = images.choose(main_photos.len() * 3);
+    pub fn create(
+        main_photos: &[&'a str],
+        bg_photos: &[&'a str],
+        tempo: f32,
+        rng: &mut impl Rng,
+    ) -> Self {
+        let main_photos = main_photos.iter().copied().collect::<Vec<_>>();
+        let bg_photos = bg_photos.iter().copied().collect::<Vec<_>>();
 
         let pause = rng.gen_range(0.2..=0.3);
         let enter_duration = tempo * rng.gen_range(1.5..=2.5);
@@ -137,22 +141,13 @@ impl<'a> ParallaxGridPhotos<'a> {
         );
 
         let main_animation = KeyFramesAnimation::new(main_keyframes);
-        let bg_animation = KeyFramesAnimation::new(vec![
-            KeyFrame {
-                start: 0.,
-                end: Some(enter_duration),
-                from: -1080.,
-                to: 0.,
-                easing: &Easing::Linear,
-            },
-            KeyFrame {
-                start: enter_duration,
-                end: Some(main_animation.total_duration + rng.gen_range(0.3..=0.7)),
-                from: 0.,
-                to: (bg_photos.len() + 2) as f32 * 400.,
-                easing: &Easing::Linear,
-            },
-        ]);
+        let bg_animation = KeyFramesAnimation::new(vec![KeyFrame {
+            start: 0.,
+            end: Some(main_animation.total_duration + rng.gen_range(0.3..=0.7)),
+            from: -1080.,
+            to: (bg_photos.len() + 2) as f32 * 400.,
+            easing: &Easing::Linear,
+        }]);
 
         Self {
             duration: bg_animation.total_duration - 0.5,
@@ -161,5 +156,20 @@ impl<'a> ParallaxGridPhotos<'a> {
             bg_photos,
             bg_animation,
         }
+    }
+
+    pub fn generate(rng: &mut impl Rng, tempo: f32, images: &mut RandomPhotos<'a>) -> Self {
+        let main_length = rng.gen_range(2..=4);
+        let main_photos = images.choose(main_length);
+        let bg_photos = images.choose(main_photos.len() * 3);
+        Self::create(&main_photos, &bg_photos, tempo, rng)
+    }
+}
+
+impl Debug for ParallaxGridPhotos<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        let mut photos = self.main_photos.clone();
+        photos.extend_from_slice(&self.bg_photos);
+        write!(f, "ParallaxGridPhotos: {}", photos.join(", "))
     }
 }

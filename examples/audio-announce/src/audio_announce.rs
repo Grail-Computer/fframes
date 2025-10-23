@@ -83,7 +83,7 @@ impl Video for AudioAnnounce<'_> {
 
         let video_frame = {
             frame.get_synced_video_frame(
-j                ctx,
+                ctx,
                 "transparent.mov",
                 &fframes::SyncVideoFrameInput {
                     looping: true,
@@ -115,15 +115,12 @@ j                ctx,
              // />
 
             {self.render_glowing_subtitles(frame, ctx)}
-            {if let Some(video_frame) = video_frame {
-                let image = video_frame.into_resized_image(&FrameConvertOptions {
+            {if let Some(video_frame) = video_frame.and_then(|f| f.into_resized_image(&FrameConvertOptions {
                  resize: ResizeVideoFrame {
                     width: AVATAR_SIZE,
                     height: AVATAR_SIZE,
                  }
-                }).unwrap().href();
-
-                let goose_image = ctx.get_image("goose2.png").unwrap();
+                })) {
 
                 fframes::svgr!(
                     <image
@@ -133,8 +130,7 @@ j                ctx,
                      y={AVATAR_Y}
                      width={AVATAR_SIZE}
                      height={AVATAR_SIZE}
-                     href={ctx.get_image("goose2.png").unwrap().href()}
-                     href={image}
+i                    href={video_frame.href()}
                     />
                 )
             } else {

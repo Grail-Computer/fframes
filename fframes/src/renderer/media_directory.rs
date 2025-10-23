@@ -63,7 +63,7 @@ impl MediaDirectory {
     pub fn process_media_source(
         &self,
         // logger: &Arc<dyn FFramesLogger>,
-    ) -> FFramesRendererResult<DynamicMediaProvider> {
+    ) -> FFramesRendererResult<DynamicMediaProvider<'_>> {
         // todo pull out to the options
         const SAMPLE_RATE: u32 = 44100;
 

@@ -174,10 +174,11 @@ function renderMainScene(ctx, size, editorContext) {
   var startX = size.timelineMarginLeft;
   var videoEndX = CanvasSize.frameToX(editorContext.videoMeta.durationInFrames - 1 | 0, size);
   var rightMargin = size.timelineMarginRight;
+  var viewportEnd = size.viewportOffset + size.maxSceneWidth;
   var endX = startX + size.maxSceneWidth;
   var frameStep = pixelsPerFrame > width ? 1 : Math.ceil(width / pixelsPerFrame) | 0;
   var effectiveFrameWidth = pixelsPerFrame > width ? pixelsPerFrame : width;
-  var adjustedWidth = size.maxSceneWidth - rightMargin;
+  var adjustedWidth = viewportEnd - startX - rightMargin;
   var numPreviews = (Math.ceil(adjustedWidth / effectiveFrameWidth) | 0) + 1 | 0;
   var firstVisibleFrame = Math.floor(size.viewportOffset / pixelsPerFrame) | 0;
   var adjustedFirstFrame = firstVisibleFrame < 0 ? 0 : firstVisibleFrame;

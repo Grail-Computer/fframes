@@ -53,7 +53,7 @@ fn main() {
 
     render(
         "out.mp4",
-        &PixelVideo::new_random_scenes(song, &args.enter_text, rng, Some(&photos_media), photos),
+        &video,
         #[cfg(feature = "cpu")]
         {
             fframes::cpu::CpuRenderingBackend {

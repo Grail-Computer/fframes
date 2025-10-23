@@ -288,12 +288,10 @@ let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) =>
 
   let width = (Float.fromInt(scene_height_size) *. aspectRatio)->Utils.Math.floor
 
-  // Keep original aspect ratio - width based on video dimensions
   let frameWidth = width->Float.fromInt
   let pixelsPerFrame = size.frameToPxRatio
   let startX = size.timelineMarginLeft->Float.fromInt
 
-  // Calculate video end position for later use
   let videoEndX = frameToX(editorContext.videoMeta.durationInFrames - 1, size)
   // Use the already calculated margins from the size object
   // The right margin is independently calculated and applied
@@ -313,16 +311,13 @@ let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) =>
     (frameWidth /. pixelsPerFrame)->Js.Math.ceil->Float.toInt
   }
 
-  // Calculate how many preview frames to render across full width
-  // At high zoom levels, use pixelsPerFrame instead of frameWidth to ensure complete coverage
   let effectiveFrameWidth = if pixelsPerFrame > frameWidth {
     pixelsPerFrame
   } else {
     frameWidth
   }
 
-  // Use adjusted width that accounts for right margin
-
+  let adjustedWidth = viewportEnd -. startX -. rightMargin
   let numPreviews = (adjustedWidth /. effectiveFrameWidth)->Js.Math.ceil->Float.toInt + 1
 
   let firstVisibleFrame = (size.viewportOffset /. pixelsPerFrame)->Js.Math.floor->Float.toInt
@@ -609,7 +604,11 @@ let renderTimeSlots = (ctx, size, editorContext: EditorContext.editorContext) =>
   let currentFrame = ref(firstSlotFrame)
   let maxIterations = 10000 // Safety limit to prevent infinite loops
   let iterations = ref(0)
-  while currentFrame.contents <= lastSlotFrame && iterations.contents < maxIterations && timeIntervalFrames > 0 {
+  while (
+    currentFrame.contents <= lastSlotFrame &&
+    iterations.contents < maxIterations &&
+    timeIntervalFrames > 0
+  ) {
     let frame = currentFrame.contents
     if frame >= 0 && frame <= editorContext.videoMeta.durationInFrames {
       let x = frameToX(frame, size)
@@ -664,7 +663,6 @@ let make = (~size: canvasSize) => {
       ctx->Canvas2d.save
       ctx->renderAudioMap(size, editorContext)
       ctx->Canvas2d.restore
-
 
       ()
     })

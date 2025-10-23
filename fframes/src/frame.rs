@@ -88,7 +88,7 @@ impl Frame {
     pub fn into_global(self) -> Self {
         Self {
             index: self.global_index,
-i           ..self
+            ..self
         }
     }
 
