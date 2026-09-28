@@ -41,7 +41,7 @@ pub fn render_frame_guarded<'a, TVideo: Video>(
     catch_unwind(AssertUnwindSafe(|| video.render_frame(frame, ctx))).map_err(|payload| {
         let message = payload
             .downcast_ref::<&str>()
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .or_else(|| payload.downcast_ref::<String>().cloned())
             .unwrap_or_else(|| "unknown panic payload".to_owned());
 

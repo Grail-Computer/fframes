@@ -20,3 +20,6 @@ path = "src/lib.rs"
 name = "tiktok_example_bin"
 path = "src/main.rs"
 required-features=["renderer"]
+
+[lints]
+workspace = true

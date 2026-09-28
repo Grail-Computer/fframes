@@ -1,6 +1,6 @@
-//! SVG filter primitives to Skia ImageFilter conversion.
+//! SVG filter primitives to Skia `ImageFilter` conversion.
 //!
-//! Walks the usvgr filter DAG and builds a composed Skia ImageFilter tree.
+//! Walks the usvgr filter DAG and builds a composed Skia `ImageFilter` tree.
 //!
 //! Mirrors the behavior of Skia's SVG DOM (`modules/svg`), which the old
 //! serialize-to-string render path used: every primitive result is tagged with
@@ -26,7 +26,7 @@ struct PrimitiveResult {
     subregion: usvgr::NonZeroRect,
 }
 
-/// Build a composed ImageFilter from a list of usvgr filters.
+/// Build a composed `ImageFilter` from a list of usvgr filters.
 ///
 /// SVG allows multiple `<filter>` elements to be applied to a single group.
 /// Each filter contains a list of primitives that form a DAG.
@@ -48,7 +48,7 @@ pub fn build_filter_chain(
     result
 }
 
-/// Build an ImageFilter from a single usvgr Filter (which has multiple primitives).
+/// Build an `ImageFilter` from a single usvgr Filter (which has multiple primitives).
 fn build_single_filter(filter: &filter::Filter, cache: &mut RenderCache) -> Option<ImageFilter> {
     let primitives = filter.primitives();
     if primitives.is_empty() {
@@ -134,7 +134,7 @@ fn convert_colorspace(
     image_filters::color_filter(cf, filter, None)
 }
 
-/// Resolve an SVG filter Input reference to a Skia ImageFilter in the
+/// Resolve an SVG filter Input reference to a Skia `ImageFilter` in the
 /// colorspace `target_cs` of the consuming primitive.
 ///
 /// - `SourceGraphic` -> None (Skia treats None as the source bitmap)
@@ -182,8 +182,7 @@ fn input_colorspace(
         Input::Reference(name) => results
             .get(name.as_str())
             .or(last_result.as_ref())
-            .map(|res| res.color_interpolation)
-            .unwrap_or(ColorInterpolation::SRGB),
+            .map_or(ColorInterpolation::SRGB, |res| res.color_interpolation),
     }
 }
 
@@ -221,8 +220,7 @@ fn input_subregion(
         Input::Reference(name) => results
             .get(name.as_str())
             .or(last_result.as_ref())
-            .map(|res| res.subregion)
-            .unwrap_or_else(|| filter.rect()),
+            .map_or_else(|| filter.rect(), |res| res.subregion),
         _ => filter.rect(),
     }
 }
@@ -251,7 +249,7 @@ fn lighting_color(color: usvgr::Color) -> skia_safe::Color {
     skia_safe::Color::from_rgb(color.red, color.green, color.blue)
 }
 
-/// Convert a single usvgr filter primitive to a Skia ImageFilter.
+/// Convert a single usvgr filter primitive to a Skia `ImageFilter`.
 ///
 /// `cs` is the colorspace the primitive operates in (see
 /// [`primitive_colorspace`]); inputs are converted into it as needed.
@@ -361,9 +359,9 @@ fn convert_primitive(
         Kind::DropShadow(fe) => {
             let input = resolve_input(fe.input(), cs, results, last_result);
             let color = skia_safe::Color4f::new(
-                fe.color().red as f32 / 255.0,
-                fe.color().green as f32 / 255.0,
-                fe.color().blue as f32 / 255.0,
+                f32::from(fe.color().red) / 255.0,
+                f32::from(fe.color().green) / 255.0,
+                f32::from(fe.color().blue) / 255.0,
                 fe.opacity().get(),
             );
             image_filters::drop_shadow(
@@ -619,7 +617,7 @@ fn convert_primitive(
     }
 }
 
-/// Build a 256-entry transfer function table from a usvgr TransferFunction.
+/// Build a 256-entry transfer function table from a usvgr `TransferFunction`.
 fn build_transfer_table(func: &filter::TransferFunction) -> Option<Box<[u8; 256]>> {
     match func {
         filter::TransferFunction::Identity => None,
@@ -682,7 +680,7 @@ fn build_transfer_table(func: &filter::TransferFunction) -> Option<Box<[u8; 256]
     }
 }
 
-/// Convert a usvgr ColorMatrixKind to a Skia ColorFilter.
+/// Convert a usvgr `ColorMatrixKind` to a Skia `ColorFilter`.
 fn convert_color_matrix(kind: &filter::ColorMatrixKind) -> Option<skia_safe::ColorFilter> {
     match kind {
         filter::ColorMatrixKind::Matrix(values) => {

@@ -82,8 +82,9 @@ fn verify_yuv_values(input: YuvVerifyInput) {
             let b = input.rgba[rgba_idx + 2];
 
             // Verify Y value using the same formula as in the implementation
-            let expected_y =
-                (16_i32 + ((66 * r as i32 + 129 * g as i32 + 25 * b as i32 + 128) >> 8)) as u8;
+            let expected_y = (16_i32
+                + ((66 * i32::from(r) + 129 * i32::from(g) + 25 * i32::from(b) + 128) >> 8))
+                as u8;
             assert_eq!(
                 input.y[y_idx], expected_y,
                 "Y mismatch at ({}, {}): expected {}, got {}",
@@ -96,10 +97,11 @@ fn verify_yuv_values(input: YuvVerifyInput) {
                 let cr_idx = (y_pos / 2) * input.cr_linesize + (x_pos / 2);
 
                 let expected_cb = (128_i32
-                    + (((-38 * r as i32) - (74 * g as i32) + (112 * b as i32)) >> 8))
+                    + (((-38 * i32::from(r)) - (74 * i32::from(g)) + (112 * i32::from(b))) >> 8))
                     as u8;
-                let expected_cr =
-                    (128_i32 + (((112 * r as i32) - (94 * g as i32) - (18 * b as i32)) >> 8)) as u8;
+                let expected_cr = (128_i32
+                    + (((112 * i32::from(r)) - (94 * i32::from(g)) - (18 * i32::from(b))) >> 8))
+                    as u8;
 
                 assert_eq!(
                     input.cb[cb_idx], expected_cb,

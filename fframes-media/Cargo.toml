@@ -74,8 +74,5 @@ libav-agree-version3 = ["ffmpeg-sys-fframes/build-license-version3"]
 [package.metadata.docs.rs]
 rustc-args = ["--cfg", "fframes_docsrs"]
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-  'cfg(wasm_bindgen_unstable_test_coverage)',
-  'cfg(fframes_docsrs)',
-] }
+[lints]
+workspace = true

@@ -13,9 +13,7 @@ impl Scene for Intro {
     }
 
     fn render_frame(&self, frame: Frame, _: &FFramesContext) -> Svgr<'_> {
-        if frame.index == 5 {
-            panic!("boom at five");
-        }
+        assert!(frame.index != 5, "boom at five");
         crate::svgr!(
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">
                 <rect x="0" y="0" width="20" height="20" fill="#ff0000" />

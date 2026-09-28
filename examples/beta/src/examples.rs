@@ -135,7 +135,7 @@ impl Scene for BetaExamples<'_> {
            <g clip-path="url(#preview-clip)">
             <g transform={
                 Transform {
-                    translate_x: if frame.seconds() >= TIKTOK_TS { VIDEO_OFFSET_X + 1188. } else { VIDEO_OFFSET_X } as f64,
+                    translate_x: f64::from(if frame.seconds() >= TIKTOK_TS { VIDEO_OFFSET_X + 1188. } else { VIDEO_OFFSET_X }),
                     translate_y: VIDEO_OFFSET_Y.into(),
                     rotate: (if frame.seconds() >= TIKTOK_TS { 90. } else { 0. }).into(),
                     scale: VIDEO_SCALE.into(),

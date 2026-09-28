@@ -1,6 +1,6 @@
 //! The playback control bar drawn over the video. It mirrors the web editor dock: a floating
 //! pill with quiet round buttons, one solid primary action and the system slider, using the
-//! dark tokens of the ChatGPT design system (`@openai/apps-sdk-ui`) and the system font.
+//! dark tokens of the `ChatGPT` design system (`@openai/apps-sdk-ui`) and the system font.
 
 use fframes_skia_renderer::skia_safe::{
     self, BlurStyle, Canvas, Color, Contains, Font, FontMgr, FontStyle, MaskFilter, Paint,
@@ -214,9 +214,10 @@ impl Controls {
 
         let icon = |icon: Icon| {
             let path = Path::from_svg(icon.path).expect("valid icon path");
-            match icon.even_odd {
-                true => path.with_fill_type(PathFillType::EvenOdd),
-                false => path,
+            if icon.even_odd {
+                path.with_fill_type(PathFillType::EvenOdd)
+            } else {
+                path
             }
         };
 
@@ -429,9 +430,12 @@ fn digit_width(font: &Font) -> f32 {
 fn tabular_width(font: &Font, text: &str) -> f32 {
     let digit = digit_width(font);
     text.chars()
-        .map(|char| match char.is_ascii_digit() {
-            true => digit,
-            false => font.measure_str(char.to_string(), None).0,
+        .map(|char| {
+            if char.is_ascii_digit() {
+                digit
+            } else {
+                font.measure_str(char.to_string(), None).0
+            }
         })
         .sum()
 }

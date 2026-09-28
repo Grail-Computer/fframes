@@ -12,4 +12,5 @@ doctest = false
 [dependencies]
 fframes.workspace = true
 
-
+[lints]
+workspace = true

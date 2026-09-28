@@ -1,6 +1,7 @@
 use super::renderer_error::{RenderEncodingError, RenderEncodingResult};
 use super::stream;
 use crate::ffmpeg_action;
+use crate::media::ffmpeg_sys_fframes::AVSampleFormat::*;
 use crate::media::ffmpeg_sys_fframes::SwsFlags::SWS_BICUBIC;
 use crate::media::ffmpeg_sys_fframes::*;
 
@@ -51,7 +52,7 @@ impl FrameFormatConvertor {
         unsafe {
             sws_scale(
                 self.sws_ctx,
-                (*self.tmp_frame).data.as_ptr() as *const *const u8,
+                (*self.tmp_frame).data.as_ptr().cast::<*const u8>(),
                 (*self.tmp_frame).linesize.as_ptr(),
                 0,
                 (*self.tmp_frame).height,
@@ -68,7 +69,7 @@ impl Drop for FrameFormatConvertor {
     fn drop(&mut self) {
         unsafe {
             sws_freeContext(self.sws_ctx);
-            av_frame_free(&mut self.tmp_frame);
+            av_frame_free(&raw mut self.tmp_frame);
         }
     }
 }
@@ -105,7 +106,10 @@ impl EncoderFrame {
                         .transpose()?;
                 }
                 stream::StreamVariant::Audio(_) => {
-                    av_channel_layout_copy(&mut (*frame).ch_layout, &(*stream.enc).ch_layout);
+                    av_channel_layout_copy(
+                        &raw mut (*frame).ch_layout,
+                        &raw const (*stream.enc).ch_layout,
+                    );
 
                     (*frame).format = (*stream.enc).sample_fmt as i32;
                     (*frame).ch_layout = (*stream.enc).ch_layout;
@@ -135,6 +139,8 @@ impl EncoderFrame {
     }
 
     /// Writes one block of stereo audio in the encoder's sample format and channel count.
+    // FFmpeg allocates the sample planes with `av_frame_get_buffer` alignment.
+    #[allow(clippy::cast_ptr_alignment)]
     pub unsafe fn fill_from_stereo(
         &mut self,
         pts: i64,
@@ -161,57 +167,62 @@ impl EncoderFrame {
                 _ => 0.,
             };
             let to_i16 = |v: f32| (v.clamp(-1., 1.) * 32767.).round() as i16;
-            let to_i32 = |v: f32| (v.clamp(-1., 1.) as f64 * 2147483647.).round() as i32;
+            let to_i32 = |v: f32| (f64::from(v.clamp(-1., 1.)) * 2_147_483_647.).round() as i32;
 
-            use AVSampleFormat::*;
             let format: AVSampleFormat = std::mem::transmute((*frame).format);
             match format {
                 AV_SAMPLE_FMT_FLTP => {
                     for c in 0..channels {
                         let plane = std::slice::from_raw_parts_mut(
-                            (*frame).extended_data.add(c).read() as *mut f32,
+                            (*frame).extended_data.add(c).read().cast::<f32>(),
                             n,
                         );
                         (0..n).for_each(|i| plane[i] = sample(c, i));
                     }
                 }
                 AV_SAMPLE_FMT_FLT => {
-                    let data =
-                        std::slice::from_raw_parts_mut((*frame).data[0] as *mut f32, n * channels);
+                    let data = std::slice::from_raw_parts_mut(
+                        (*frame).data[0].cast::<f32>(),
+                        n * channels,
+                    );
                     (0..n).for_each(|i| {
-                        (0..channels).for_each(|c| data[i * channels + c] = sample(c, i))
+                        (0..channels).for_each(|c| data[i * channels + c] = sample(c, i));
                     });
                 }
                 AV_SAMPLE_FMT_S16P => {
                     for c in 0..channels {
                         let plane = std::slice::from_raw_parts_mut(
-                            (*frame).extended_data.add(c).read() as *mut i16,
+                            (*frame).extended_data.add(c).read().cast::<i16>(),
                             n,
                         );
                         (0..n).for_each(|i| plane[i] = to_i16(sample(c, i)));
                     }
                 }
                 AV_SAMPLE_FMT_S16 => {
-                    let data =
-                        std::slice::from_raw_parts_mut((*frame).data[0] as *mut i16, n * channels);
+                    let data = std::slice::from_raw_parts_mut(
+                        (*frame).data[0].cast::<i16>(),
+                        n * channels,
+                    );
                     (0..n).for_each(|i| {
-                        (0..channels).for_each(|c| data[i * channels + c] = to_i16(sample(c, i)))
+                        (0..channels).for_each(|c| data[i * channels + c] = to_i16(sample(c, i)));
                     });
                 }
                 AV_SAMPLE_FMT_S32P => {
                     for c in 0..channels {
                         let plane = std::slice::from_raw_parts_mut(
-                            (*frame).extended_data.add(c).read() as *mut i32,
+                            (*frame).extended_data.add(c).read().cast::<i32>(),
                             n,
                         );
                         (0..n).for_each(|i| plane[i] = to_i32(sample(c, i)));
                     }
                 }
                 AV_SAMPLE_FMT_S32 => {
-                    let data =
-                        std::slice::from_raw_parts_mut((*frame).data[0] as *mut i32, n * channels);
+                    let data = std::slice::from_raw_parts_mut(
+                        (*frame).data[0].cast::<i32>(),
+                        n * channels,
+                    );
                     (0..n).for_each(|i| {
-                        (0..channels).for_each(|c| data[i * channels + c] = to_i32(sample(c, i)))
+                        (0..channels).for_each(|c| data[i * channels + c] = to_i32(sample(c, i)));
                     });
                 }
                 format => {
@@ -230,7 +241,7 @@ impl EncoderFrame {
             if let Some(converter) = self.format_convertor.as_ref() {
                 // in case we don't use fframes conversion path we use a temporary frame which is set
                 // to the planar RGBA 8888 format and then use sws_scale to convert to the output fmt
-                (*converter.tmp_frame).data[0] = rgba_pixels.as_ptr() as *mut u8; // sws_scale doesn't do any mutations when converting from
+                (*converter.tmp_frame).data[0] = rgba_pixels.as_ptr().cast_mut(); // sws_scale doesn't do any mutations when converting from
                 converter.convert(self.av_frame)
             } else {
                 Self::fill_yuv420_from_rgba_pixmap(self.av_frame, rgba_pixels)
@@ -244,9 +255,7 @@ impl EncoderFrame {
     ) -> *mut AVFrame {
         unsafe {
             let is_writable = av_frame_make_writable(frame);
-            if is_writable < 0 {
-                panic!("Can not reuse frame allocations");
-            }
+            assert!(is_writable >= 0, "Can not reuse frame allocations");
 
             super::pix_fmt::fill_yuv420_from_rgba_pixmap_accelerated(
                 (*frame).width,
@@ -270,11 +279,11 @@ impl Drop for EncoderFrame {
         unsafe {
             if !self.av_frame.is_null() {
                 av_frame_unref(self.av_frame);
-                av_frame_free(&mut self.av_frame);
+                av_frame_free(&raw mut self.av_frame);
             }
             if !self.packet.is_null() {
                 av_packet_unref(self.packet);
-                av_packet_free(&mut self.packet);
+                av_packet_free(&raw mut self.packet);
             }
         }
     }

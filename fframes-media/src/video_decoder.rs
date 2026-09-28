@@ -74,7 +74,7 @@ impl SwsScaler {
         source_pix_fmt: AVPixelFormat,
         target_width: i32,
         target_height: i32,
-    ) -> Result<*mut SwsContext> {
+    ) -> *mut SwsContext {
         unsafe {
             let flags = if video_stream_info.width > target_width
                 || video_stream_info.height > target_height
@@ -88,7 +88,7 @@ impl SwsScaler {
                 0
             };
 
-            Ok(sws_getContext(
+            sws_getContext(
                 video_stream_info.width,
                 video_stream_info.height,
                 source_pix_fmt,
@@ -99,7 +99,7 @@ impl SwsScaler {
                 ptr::null_mut(),
                 ptr::null_mut(),
                 ptr::null_mut(),
-            ))
+            )
         }
     }
 
@@ -109,12 +109,12 @@ impl SwsScaler {
         linesize
     }
 
-    fn new(video_stream_info: VideoStreamInfo) -> Result<Self> {
+    fn new(video_stream_info: VideoStreamInfo) -> Self {
         let frame_data_len =
             video_stream_info.width as usize * video_stream_info.height as usize * PIX_FMT_SIZE;
 
         let linesize: [i32; 7] = Self::calculate_linesize(video_stream_info.width);
-        Ok(SwsScaler {
+        SwsScaler {
             linesize,
             frame_data_len,
             height: video_stream_info.height,
@@ -122,35 +122,29 @@ impl SwsScaler {
             sws_ctx: std::ptr::null_mut(),
             options: None,
             video_stream_info,
-        })
+        }
     }
 
     unsafe fn reinit_sws_context(
         &mut self,
         pix_fmt: AVPixelFormat,
         options: Option<FrameConvertOptions>,
-    ) -> Result<()> {
+    ) {
         if !self.sws_ctx.is_null() {
             sws_freeContext(self.sws_ctx);
         }
 
-        let new_width = options
-            .map(|o| o.resize.width as i32)
-            .unwrap_or(self.video_stream_info.width);
-        let new_height = options
-            .map(|o| o.resize.height as i32)
-            .unwrap_or(self.video_stream_info.height);
+        let new_width = options.map_or(self.video_stream_info.width, |o| o.resize.width as i32);
+        let new_height = options.map_or(self.video_stream_info.height, |o| o.resize.height as i32);
 
         self.sws_ctx =
-            Self::init_sws_context(&self.video_stream_info, pix_fmt, new_width, new_height)?;
+            Self::init_sws_context(&self.video_stream_info, pix_fmt, new_width, new_height);
         self.width = new_width;
         self.height = new_height;
         self.options = options;
 
         self.frame_data_len = new_width as usize * new_height as usize * PIX_FMT_SIZE;
         self.linesize = Self::calculate_linesize(new_width);
-
-        Ok(())
     }
 
     unsafe fn convert(
@@ -161,12 +155,12 @@ impl SwsScaler {
     ) -> Result<()> {
         let source_pix_fmt: AVPixelFormat = std::mem::transmute((*source_frame).format);
         if self.sws_ctx.is_null() || self.options != options {
-            self.reinit_sws_context(source_pix_fmt, options)?;
+            self.reinit_sws_context(source_pix_fmt, options);
         }
 
         let ret = sws_scale(
             self.sws_ctx,
-            (*source_frame).data.as_ptr() as *const *const u8,
+            (*source_frame).data.as_ptr().cast::<*const u8>(),
             (*source_frame).linesize.as_ptr(),
             0,
             self.video_stream_info.height,
@@ -225,7 +219,7 @@ impl Drop for FFmpegFrameBuf {
         unsafe {
             if !self.latest_av_frame.is_null() {
                 av_frame_unref(self.latest_av_frame);
-                av_frame_free(&mut self.latest_av_frame);
+                av_frame_free(&raw mut self.latest_av_frame);
             }
 
             if let Some(queue) = self.data_buf.get().as_mut() {
@@ -295,7 +289,7 @@ impl FFmpegFrameBuf {
                 return Err(FFramesMediaError::LibAVAllocationError("frame"));
             }
 
-            let sws_ctx = SwsScaler::new(video_stream_info)?;
+            let sws_ctx = SwsScaler::new(video_stream_info);
             Ok(FFmpegFrameBuf {
                 video_stream_info,
                 latest_av_frame: av_frame,
@@ -477,7 +471,7 @@ impl FFmpegDecoder {
 
             let mut fmt_ctx: *mut AVFormatContext = ptr::null_mut();
             let ret = avformat_open_input(
-                &mut fmt_ctx,
+                &raw mut fmt_ctx,
                 full_path_cstr.as_ptr(),
                 ptr::null_mut(),
                 ptr::null_mut(),
@@ -485,7 +479,7 @@ impl FFmpegDecoder {
 
             if ret < 0 {
                 if !fmt_ctx.is_null() {
-                    avformat_close_input(&mut fmt_ctx);
+                    avformat_close_input(&raw mut fmt_ctx);
                 }
                 return Err(FFramesMediaError::LibAVAudioDecodingError((
                     ret,
@@ -495,7 +489,7 @@ impl FFmpegDecoder {
 
             let ret = avformat_find_stream_info(fmt_ctx, ptr::null_mut());
             if ret < 0 {
-                avformat_close_input(&mut fmt_ctx);
+                avformat_close_input(&raw mut fmt_ctx);
                 return Err(FFramesMediaError::LibAVAudioDecodingError((
                     ret,
                     "Could not find stream information".to_string(),
@@ -505,14 +499,14 @@ impl FFmpegDecoder {
             let video_stream_info = Self::open_codec_context(fmt_ctx)?;
             let pkt = av_packet_alloc();
             if pkt.is_null() {
-                avformat_close_input(&mut fmt_ctx);
+                avformat_close_input(&raw mut fmt_ctx);
                 return Err(FFramesMediaError::LibAVAllocationError("packet"));
             }
 
             let hw_frame = if video_stream_info.hw_pix_fmt.is_some() {
                 let hw_frame = av_frame_alloc();
                 if hw_frame.is_null() {
-                    avformat_close_input(&mut fmt_ctx);
+                    avformat_close_input(&raw mut fmt_ctx);
                     return Err(FFramesMediaError::LibAVAllocationError("av_frame"));
                 }
 
@@ -720,7 +714,7 @@ impl FFmpegDecoder {
             // would be returned. Far jumps forward seek to the closest keyframe instead of
             // decoding every frame in between (frames can be requested out of order by
             // parallel renderers).
-            let seek_ahead_frames = 2 * self.custom_time_base.den.max(1) as i64;
+            let seek_ahead_frames = 2 * i64::from(self.custom_time_base.den.max(1));
             let needs_seek = self.last_offset.is_some_and(|last_offset| {
                 offset < last_offset || offset - last_offset > seek_ahead_frames
             });
@@ -760,10 +754,10 @@ impl FFmpegDecoder {
                             )));
                         }
 
-                        let target_frame = if !self.hw_frame.is_null() {
-                            self.hw_frame
-                        } else {
+                        let target_frame = if self.hw_frame.is_null() {
                             self.frame_buf.latest_av_frame
+                        } else {
+                            self.hw_frame
                         };
 
                         loop {
@@ -812,9 +806,9 @@ impl FFmpegDecoder {
 impl Drop for FFmpegDecoder {
     fn drop(&mut self) {
         unsafe {
-            avcodec_free_context(&mut self.video_stream_info.codec_ctx);
-            avformat_close_input(&mut self.fmt_ctx);
-            av_packet_free(&mut self.pkt);
+            avcodec_free_context(&raw mut self.video_stream_info.codec_ctx);
+            avformat_close_input(&raw mut self.fmt_ctx);
+            av_packet_free(&raw mut self.pkt);
         }
     }
 }
@@ -843,7 +837,7 @@ unsafe fn find_hw_accelleleration_for_codec(
             AVHWDeviceType::AV_HWDEVICE_TYPE_VULKAN,
         ];
 
-        for &hw_type in hw_types.iter() {
+        for &hw_type in &hw_types {
             let create_result =
                 av_hwdevice_ctx_create(hw_device_ctx, hw_type, ptr::null(), ptr::null_mut(), 0);
 
@@ -909,7 +903,7 @@ unsafe fn find_hw_out_source_format(frame: *mut AVFrame) -> Option<AVPixelFormat
     let ret = av_hwframe_transfer_get_formats(
         (*frame).hw_frames_ctx,
         AVHWFrameTransferDirection::AV_HWFRAME_TRANSFER_DIRECTION_FROM,
-        &mut formats,
+        &raw mut formats,
         0,
     );
 
@@ -924,7 +918,7 @@ unsafe fn find_hw_out_source_format(frame: *mut AVFrame) -> Option<AVPixelFormat
             | AVPixelFormat::AV_PIX_FMT_RGBA
             | AVPixelFormat::AV_PIX_FMT_BGRA => {
                 let res = *fmt;
-                av_freep(&mut formats as *mut *mut _ as *mut c_void);
+                av_freep((&raw mut formats).cast::<c_void>());
 
                 return Some(res);
             }
@@ -938,7 +932,7 @@ unsafe fn find_hw_out_source_format(frame: *mut AVFrame) -> Option<AVPixelFormat
     }
 
     let first_format = *formats;
-    av_freep(&mut formats as *mut *mut _ as *mut c_void);
+    av_freep((&raw mut formats).cast::<c_void>());
 
     Some(first_format)
 }

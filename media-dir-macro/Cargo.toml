@@ -33,3 +33,6 @@ fframes-media = { workspace = true, features = ["videotoolbox"] }
 exif = ["fframes-media/kamadak-exif"]
 nightly = []
 metadata = []
+
+[lints]
+workspace = true

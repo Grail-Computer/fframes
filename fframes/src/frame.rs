@@ -108,7 +108,7 @@ impl Frame {
     }
 
     /// Calculates animation in runtime.
-    /// Unlike frame.animate(fframes::timeline!()) you can pass dynamic value in the start/from/to properties.
+    /// Unlike `frame.animate(fframes::timeline`!()) you can pass dynamic value in the start/from/to properties.
     /// But it is required to prepare easing function in advance.
     ///
     /// Use frame.animate! if possible.
@@ -169,7 +169,7 @@ impl Frame {
 
     /// Returns the current value of the animation at the current second.
     ///
-    /// Timeline is defined using fframes::timeline! macros. All the gaps between frames are filled automatically.
+    /// Timeline is defined using `fframes::timeline`! macros. All the gaps between frames are filled automatically.
     ///
     /// ## Example
     ///

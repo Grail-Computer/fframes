@@ -4,7 +4,7 @@ use fframes::usvgr;
 use fframes::usvgr::tiny_skia_path;
 use skia_safe::{self, Paint, PathBuilder};
 
-/// Convert a tiny_skia_path::Path to a skia_safe::Path.
+/// Convert a `tiny_skia_path::Path` to a `skia_safe::Path`.
 pub fn convert_path(path: &tiny_skia_path::Path) -> skia_safe::Path {
     let mut builder = PathBuilder::new();
 
@@ -183,7 +183,7 @@ fn convert_line_join(join: usvgr::LineJoin) -> skia_safe::paint::Join {
     }
 }
 
-/// Convert usvgr BlendMode to Skia BlendMode.
+/// Convert usvgr `BlendMode` to Skia `BlendMode`.
 pub fn convert_blend_mode(mode: usvgr::BlendMode) -> skia_safe::BlendMode {
     match mode {
         usvgr::BlendMode::Normal => skia_safe::BlendMode::SrcOver,

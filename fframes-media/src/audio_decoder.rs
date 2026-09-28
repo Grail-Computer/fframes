@@ -48,7 +48,7 @@ impl AudioDecoder {
             }
 
             let ret = avformat_open_input(
-                &mut fmt_context,
+                &raw mut fmt_context,
                 filename.as_ptr(),
                 ptr::null_mut(),
                 ptr::null_mut(),
@@ -64,7 +64,7 @@ impl AudioDecoder {
 
             let ret = avformat_find_stream_info(fmt_context, ptr::null_mut());
             if ret < 0 {
-                avformat_close_input(&mut fmt_context);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::LibAVAudioDecodingError((
                     ret,
                     "Could not find stream info".to_string(),
@@ -81,7 +81,7 @@ impl AudioDecoder {
             );
 
             if stream_idx < 0 {
-                avformat_close_input(&mut fmt_context);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::LibAVAudioDecodingError((
                     stream_idx,
                     "Could not find fitting audio stream in the media file".to_string(),
@@ -97,7 +97,7 @@ impl AudioDecoder {
 
             let codec = avcodec_find_decoder(codec_id);
             if codec.is_null() {
-                avformat_close_input(&mut fmt_context);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::AudioDecodingError(
                     "Could not find encoder".to_string(),
                 ));
@@ -105,7 +105,7 @@ impl AudioDecoder {
 
             let mut decoding_ctx = avcodec_alloc_context3(codec);
             if decoding_ctx.is_null() {
-                avformat_close_input(&mut fmt_context);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::AudioDecodingError(
                     "Error while parsing".to_string(),
                 ));
@@ -114,8 +114,8 @@ impl AudioDecoder {
             avcodec_parameters_to_context(decoding_ctx, audio_stream.codecpar);
             let ret = avcodec_open2(decoding_ctx, codec, ptr::null_mut());
             if ret < 0 {
-                avcodec_free_context(&mut decoding_ctx);
-                avformat_close_input(&mut fmt_context);
+                avcodec_free_context(&raw mut decoding_ctx);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::LibAVAudioDecodingError((
                     ret,
                     "Could not open codec".to_string(),
@@ -126,22 +126,22 @@ impl AudioDecoder {
 
             let swr_ctx = swr_alloc();
             av_opt_set_int(
-                swr_ctx as *mut _ as *mut std::ffi::c_void,
+                swr_ctx.cast::<std::ffi::c_void>(),
                 CString::new("in_sample_rate")?.as_ptr(),
-                (*decoding_ctx).sample_rate as i64,
+                i64::from((*decoding_ctx).sample_rate),
                 0,
             );
             av_opt_set_int(
-                swr_ctx as *mut _ as *mut std::ffi::c_void,
+                swr_ctx.cast::<std::ffi::c_void>(),
                 CString::new("out_sample_rate")?.as_ptr(),
-                out_sample_rate as i64,
+                i64::from(out_sample_rate),
                 0,
             );
 
             // Some containers leave the layout unspecified, swr needs a real one.
             let mut in_layout = (*decoding_ctx).ch_layout;
             if in_layout.order == AVChannelOrder::AV_CHANNEL_ORDER_UNSPEC {
-                av_channel_layout_default(&mut in_layout, in_layout.nb_channels.max(1));
+                av_channel_layout_default(&raw mut in_layout, in_layout.nb_channels.max(1));
             }
 
             let out_channels = match channel_mode {
@@ -150,14 +150,14 @@ impl AudioDecoder {
             };
 
             av_opt_set_chlayout(
-                swr_ctx as *mut _ as *mut std::ffi::c_void,
+                swr_ctx.cast::<std::ffi::c_void>(),
                 CString::new("in_chlayout")?.as_ptr(),
-                &in_layout,
+                &raw const in_layout,
                 0,
             );
 
             av_opt_set_chlayout(
-                swr_ctx as *mut _ as *mut std::ffi::c_void,
+                swr_ctx.cast::<std::ffi::c_void>(),
                 CString::new("out_chlayout")?.as_ptr(),
                 if out_channels == 2 {
                     &STEREO_CH_LAYOUT
@@ -168,13 +168,13 @@ impl AudioDecoder {
             );
 
             av_opt_set_sample_fmt(
-                swr_ctx as *mut _ as *mut std::ffi::c_void,
+                swr_ctx.cast::<std::ffi::c_void>(),
                 CString::new("in_sample_fmt")?.as_ptr(),
                 (*decoding_ctx).sample_fmt,
                 0,
             );
             av_opt_set_sample_fmt(
-                swr_ctx as *mut _ as *mut std::ffi::c_void,
+                swr_ctx.cast::<std::ffi::c_void>(),
                 CString::new("out_sample_fmt")?.as_ptr(),
                 AVSampleFormat::AV_SAMPLE_FMT_FLTP,
                 0,
@@ -182,8 +182,8 @@ impl AudioDecoder {
 
             let ret = swr_init(swr_ctx);
             if ret < 0 {
-                avcodec_free_context(&mut decoding_ctx);
-                avformat_close_input(&mut fmt_context);
+                avcodec_free_context(&raw mut decoding_ctx);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::LibAVAudioDecodingError((
                     ret,
                     "Failed to initialize the resampler context".to_string(),
@@ -192,8 +192,8 @@ impl AudioDecoder {
 
             let mut avpkt = av_packet_alloc();
             if avpkt.is_null() {
-                avcodec_free_context(&mut decoding_ctx);
-                avformat_close_input(&mut fmt_context);
+                avcodec_free_context(&raw mut decoding_ctx);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::AudioDecodingError(
                     "Could not allocate packet".to_string(),
                 ));
@@ -201,9 +201,9 @@ impl AudioDecoder {
 
             let frame = av_frame_alloc();
             if frame.is_null() {
-                av_packet_free(&mut avpkt);
-                avcodec_free_context(&mut decoding_ctx);
-                avformat_close_input(&mut fmt_context);
+                av_packet_free(&raw mut avpkt);
+                avcodec_free_context(&raw mut decoding_ctx);
+                avformat_close_input(&raw mut fmt_context);
                 return Err(FFramesMediaError::AudioDecodingError(
                     "Could not allocate frame".to_string(),
                 ));
@@ -237,7 +237,7 @@ impl AudioDecoder {
                 .zip(&lengths)
                 .map(|(channel, len)| {
                     channel.reserve(max_samples.max(0) as usize);
-                    channel.as_mut_ptr().add(*len) as *mut u8
+                    channel.as_mut_ptr().add(*len).cast::<u8>()
                 })
                 .collect();
 
@@ -292,12 +292,12 @@ impl AudioDecoder {
                         )));
                     }
                     _ => (),
-                };
+                }
 
                 let nb_samples = av_rescale_rnd(
                     swr_get_delay(self.swr_ctx, (*self.decoding_ctx).sample_rate.into())
-                        + (*self.frame).nb_samples as i64,
-                    self.out_sample_rate as i64,
+                        + i64::from((*self.frame).nb_samples),
+                    i64::from(self.out_sample_rate),
                     (*self.decoding_ctx).sample_rate.into(),
                     AVRounding::AV_ROUND_UP,
                 );
@@ -305,7 +305,7 @@ impl AudioDecoder {
                 self.convert_into(
                     channels,
                     nb_samples as i32,
-                    (*self.frame).extended_data as *mut *const u8,
+                    (*self.frame).extended_data.cast::<*const u8>(),
                     (*self.frame).nb_samples,
                 )?;
             }
@@ -344,7 +344,7 @@ impl AudioDecoder {
             av_frame_unref(self.frame);
 
             // Drain samples the resampler still buffers.
-            let delay = swr_get_delay(self.swr_ctx, self.out_sample_rate as i64);
+            let delay = swr_get_delay(self.swr_ctx, i64::from(self.out_sample_rate));
             if delay > 0 {
                 self.convert_into(&mut samples, delay as i32, std::ptr::null_mut(), 0)?;
             }
@@ -358,19 +358,19 @@ impl Drop for AudioDecoder {
     fn drop(&mut self) {
         unsafe {
             if !self.decoding_ctx.is_null() {
-                avcodec_free_context(&mut self.decoding_ctx);
+                avcodec_free_context(&raw mut self.decoding_ctx);
             }
             if !self.fmt_context.is_null() {
-                avformat_close_input(&mut self.fmt_context);
+                avformat_close_input(&raw mut self.fmt_context);
             }
             if !self.avpkt.is_null() {
-                av_packet_free(&mut self.avpkt);
+                av_packet_free(&raw mut self.avpkt);
             }
             if !self.frame.is_null() {
-                av_frame_free(&mut self.frame);
+                av_frame_free(&raw mut self.frame);
             }
             if !self.swr_ctx.is_null() {
-                swr_free(&mut self.swr_ctx);
+                swr_free(&raw mut self.swr_ctx);
             }
         }
     }
@@ -409,28 +409,28 @@ mod tests {
     fn test_audio_decoding_mp3() {
         let mut decoder = AudioDecoder::new(PathBuf::from("test_audio/audio.mp3"), None).unwrap();
         let result = decoder.decode_all_samples();
-        assert_eq!(result.unwrap().1.len(), 926100);
+        assert_eq!(result.unwrap().1.len(), 926_100);
     }
 
     #[test]
     fn test_audio_decoding_flac() {
         let mut decoder = AudioDecoder::new(PathBuf::from("test_audio/audio.flac"), None).unwrap();
         let result = decoder.decode_all_samples();
-        assert_eq!(result.unwrap().1.len(), 926100);
+        assert_eq!(result.unwrap().1.len(), 926_100);
     }
 
     #[test]
     fn test_audio_decoding_wav() {
         let mut decoder = AudioDecoder::new(PathBuf::from("test_audio/audio.wav"), None).unwrap();
         let result = decoder.decode_all_samples();
-        assert_eq!(result.unwrap().1.len(), 926100);
+        assert_eq!(result.unwrap().1.len(), 926_100);
     }
 
     #[test]
     fn test_audio_decoding_aac() {
         let mut decoder = AudioDecoder::new(PathBuf::from("test_audio/audio.aac"), None).unwrap();
         let result = decoder.decode_all_samples();
-        assert_eq!(result.unwrap().1.len(), 927744);
+        assert_eq!(result.unwrap().1.len(), 927_744);
     }
 
     #[test]

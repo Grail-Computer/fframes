@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -244,7 +245,7 @@ impl<'s> App<'s> {
         );
 
         if self.clock.is_playing() {
-            title += &format!(" | {:.1}/{fps} fps", self.shown_fps);
+            let _ = write!(title, " | {:.1}/{fps} fps", self.shown_fps);
         } else {
             title += " | paused";
         }
@@ -269,16 +270,16 @@ impl<'s> App<'s> {
             Key::Named(NamedKey::Space) => self.toggle_play(),
             Key::Named(NamedKey::Escape) | Key::Character("q") => event_loop.exit(),
             Key::Named(NamedKey::ArrowLeft) | Key::Character("h") => {
-                self.seek_to_frame(frame - second)
+                self.seek_to_frame(frame - second);
             }
             Key::Named(NamedKey::ArrowRight) | Key::Character("l") => {
-                self.seek_to_frame(frame + second)
+                self.seek_to_frame(frame + second);
             }
             Key::Named(NamedKey::ArrowDown) | Key::Character("j" | ",") => self.step(frame - 1),
             Key::Named(NamedKey::ArrowUp) | Key::Character("k" | ".") => self.step(frame + 1),
             Key::Named(NamedKey::Home) | Key::Character("g") => self.seek_to_frame(0),
             Key::Named(NamedKey::End) | Key::Character("G") => {
-                self.seek_to_frame(self.last_frame() as i64)
+                self.seek_to_frame(self.last_frame() as i64);
             }
             Key::Character("r") => {
                 self.looping = !self.looping;
@@ -291,7 +292,7 @@ impl<'s> App<'s> {
             }
             Key::Character("f") => self.toggle_fullscreen(),
             Key::Character(digit) if digit.len() == 1 && digit.as_bytes()[0].is_ascii_digit() => {
-                let tenth = (digit.as_bytes()[0] - b'0') as i64;
+                let tenth = i64::from(digit.as_bytes()[0] - b'0');
                 self.seek_to_frame(self.config.duration_in_frames as i64 * tenth / 10);
             }
             _ => {}
@@ -344,9 +345,11 @@ impl<'s> App<'s> {
         let Some(presenter) = &self.presenter else {
             return;
         };
-        let progress = presenter
-            .controls_layout()
-            .progress_at(self.cursor.x as f32) as f64;
+        let progress = f64::from(
+            presenter
+                .controls_layout()
+                .progress_at(self.cursor.x as f32),
+        );
         let frame = (progress * self.last_frame() as f64).round() as i64;
         self.seek_to_frame(frame);
     }
@@ -391,7 +394,6 @@ impl<'s> App<'s> {
 
         match self.control_under_cursor() {
             Some(Control::Back) => self.seek_to_frame(frame - second),
-            Some(Control::PlayPause) => self.toggle_play(),
             Some(Control::Forward) => self.seek_to_frame(frame + second),
             Some(Control::Seek) => {
                 self.seeking_with_mouse = true;
@@ -404,8 +406,8 @@ impl<'s> App<'s> {
             }
             Some(Control::Fullscreen) => self.toggle_fullscreen(),
             Some(Control::Bar) => {}
-            // Clicking the video itself toggles playback
-            None => self.toggle_play(),
+            // Clicking the video itself toggles playback too
+            Some(Control::PlayPause) | None => self.toggle_play(),
         }
         self.needs_redraw = true;
     }

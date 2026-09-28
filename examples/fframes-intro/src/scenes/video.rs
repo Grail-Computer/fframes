@@ -103,7 +103,7 @@ impl Scene for VideoScene {
             .unwrap_or_default();
         let right_img = if keyed {
             let flicker = if lb < 4.25 {
-                (hash(lb * 211.0) > 0.5) as i32 as f32
+                i32::from(hash(lb * 211.0) > 0.5) as f32
             } else {
                 1.0
             };

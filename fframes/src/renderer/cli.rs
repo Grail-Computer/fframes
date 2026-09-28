@@ -22,6 +22,7 @@ use crate::diagnostics::Severity;
 use crate::{AudioMixer, AudioTimelineSamples, AudioTimelineUnit, RenderOptions, Video};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use serde::Serialize;
+use std::fmt::Write as _;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -470,9 +471,10 @@ fn diagnostics_text(report: &FrameReport, indent: &str) -> String {
         .filter(|d| d.severity == Severity::Info)
         .count();
     if info > 0 {
-        text.push_str(&format!(
-            "{indent}({info} info findings, e.g. text outside the canvas, see --json)\n"
-        ));
+        let _ = writeln!(
+            text,
+            "{indent}({info} info findings, e.g. text outside the canvas, see --json)"
+        );
     }
     text
 }
@@ -568,7 +570,7 @@ fn render<'a, 'media: 'a, V: Video + Send + Sync, B: FFramesRenderBackend>(
             options.scale_resolution = 0.5;
         }
         let encoder = options.video_encoder_options.preferred_encoder;
-        if matches!(encoder, None | Some("libx264") | Some("libx265")) {
+        if matches!(encoder, None | Some("libx264" | "libx265")) {
             options.video_encoder_options.codec_params =
                 Some(&[("preset", "ultrafast"), ("crf", "30")]);
         }
@@ -644,8 +646,9 @@ fn frame<'a, 'm: 'a, V: Video>(
     print(json, &results, || {
         results
             .iter()
-            .map(|r| {
-                format!(
+            .fold(String::new(), |mut text, r| {
+                let _ = write!(
+                    text,
                     "{} frame {} {:.2}s{} -> {}\n{}",
                     r.spec,
                     r.report.frame,
@@ -653,9 +656,9 @@ fn frame<'a, 'm: 'a, V: Video>(
                     scenes_label(&r.report.scenes),
                     r.path.display(),
                     diagnostics_text(&r.report, "  ")
-                )
+                );
+                text
             })
-            .collect::<String>()
             .trim_end()
             .to_owned()
     });
@@ -706,15 +709,12 @@ fn sheet_text(result: &SheetResult) -> String {
         result
             .frames
             .iter()
-            .map(|f| f.to_string())
+            .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ")
     );
     for report in &result.diagnostics {
-        text.push_str(&format!(
-            "\nframe {} {:.2}s:\n",
-            report.frame, report.seconds
-        ));
+        let _ = write!(text, "\nframe {} {:.2}s:\n", report.frame, report.seconds);
         text.push_str(diagnostics_text(report, "  ").trim_end());
     }
     text
@@ -731,7 +731,7 @@ fn strip<'a, 'm: 'a, V: Video>(
         .resolve_range(&args.range)
         .map_err(err)?;
     let frames = spread(range, args.count);
-    previewer.set_scale(args.width as f64 / V::WIDTH as f64);
+    previewer.set_scale(f64::from(args.width) / V::WIDTH as f64);
     let (cells, diagnostics) = render_cells(previewer, renderer, &frames)?;
     let image = sheet::contact_sheet(
         &cells,
@@ -808,6 +808,8 @@ fn svg<'a, 'm: 'a, V: Video>(
     Ok(ExitCode::SUCCESS)
 }
 
+// Every command shares the `CliResult` signature.
+#[allow(clippy::unnecessary_wraps)]
 fn timeline<'a, 'm: 'a, V: Video>(json: bool, previewer: &Previewer<'a, 'm, V>) -> CliResult {
     let report = previewer.timeline_report();
     print(json, &report, || {
@@ -823,13 +825,14 @@ fn timeline<'a, 'm: 'a, V: Video>(json: bool, previewer: &Previewer<'a, 'm, V>) 
             text.push_str("no scenes\n");
         }
         for scene in &report.scenes {
-            text.push_str(&format!(
-                "#{:<3} {:<28} frames {:>14} {:>18}\n",
+            let _ = writeln!(
+                text,
+                "#{:<3} {:<28} frames {:>14} {:>18}",
                 scene.index,
                 scene.name,
                 format!("{}..{}", scene.start_frame, scene.end_frame),
                 format!("{:.2}s..{:.2}s", scene.start_seconds, scene.end_seconds)
-            ));
+            );
         }
         for track in &report.audio {
             let mix = &track.mix;
@@ -852,13 +855,14 @@ fn timeline<'a, 'm: 'a, V: Video>(json: bool, previewer: &Previewer<'a, 'm, V>) 
             if mix.duck.is_some() {
                 extra.push("ducked".into());
             }
-            text.push_str(&format!(
-                "audio {:<28} {:>8.3}s..{:.3}s {}\n",
+            let _ = writeln!(
+                text,
+                "audio {:<28} {:>8.3}s..{:.3}s {}",
                 track.file,
                 track.start_seconds,
                 track.end_seconds,
                 extra.join(", ")
-            ));
+            );
         }
         text.trim_end().to_owned()
     });
@@ -970,10 +974,11 @@ fn inspect<'a, 'm: 'a, V: Video>(
         if result.findings.is_empty() {
             text.push_str("no problems found");
         } else {
-            text.push_str(&format!("{} findings", result.findings.len()));
+            let _ = write!(text, "{} findings", result.findings.len());
         }
         for f in &result.findings {
-            text.push_str(&format!(
+            let _ = write!(
+                text,
                 "\n{:?} {:.2}s..{:.2}s (frames {}..{}, seen in {}){}: {}",
                 f.severity,
                 f.first_seconds,
@@ -983,7 +988,7 @@ fn inspect<'a, 'm: 'a, V: Video>(
                 f.frames,
                 scenes_label(&f.scenes),
                 f.message
-            ));
+            );
         }
         text
     });
@@ -1021,12 +1026,13 @@ fn snapshots<'a, 'm: 'a, V: Video>(
             .map(|r| {
                 let mut line = format!("{:?} {} (frame {})", r.status, r.spec, r.frame);
                 if r.status == snapshot::SnapshotStatus::Failed {
-                    line.push_str(&format!(
+                    let _ = write!(
+                        line,
                         ": {:.3}% of pixels differ, actual {}, diff {}",
                         r.diff_ratio * 100.,
                         r.actual.as_deref().unwrap_or(Path::new("-")).display(),
                         r.diff.as_deref().unwrap_or(Path::new("-")).display()
-                    ));
+                    );
                 }
                 line
             })
@@ -1107,9 +1113,10 @@ fn audio<'a, 'm: 'a, V: Video>(
                         samples.end as f64 / sample_rate as f64
                     );
                     for file in mixer.missing_files() {
-                        text.push_str(&format!(
+                        let _ = write!(
+                            text,
                             "\nwarning: audio \"{file}\" is not in the media provider"
-                        ));
+                        );
                     }
                     text
                 },
@@ -1203,7 +1210,8 @@ fn audio<'a, 'm: 'a, V: Video>(
                             text.push_str(" silence");
                         }
                         for t in tracks {
-                            text.push_str(&format!(
+                            let _ = write!(
+                                text,
                                 "\n  {} at {:.3}s of the file, {:.1} dB{}{}",
                                 t["file"].as_str().unwrap_or(""),
                                 t["file_seconds"].as_f64().unwrap_or(0.),
@@ -1217,7 +1225,7 @@ fn audio<'a, 'm: 'a, V: Video>(
                                     Some(d) if d < -0.05 => format!(", ducked {d:.1} dB"),
                                     _ => String::new(),
                                 }
-                            ));
+                            );
                         }
                         text
                     })
@@ -1250,24 +1258,26 @@ fn audio_report_text(
         report.clipped_samples
     );
     for range in &report.silent_ranges {
-        text.push_str(&format!("\nsilent {:.2}s..{:.2}s", range[0], range[1]));
+        let _ = write!(text, "\nsilent {:.2}s..{:.2}s", range[0], range[1]);
     }
     for section in &report.sections {
-        text.push_str(&format!(
+        let _ = write!(
+            text,
             "\n{:<28} {:>18} {} / peak {}",
             section.name,
             format!("{:.2}s..{:.2}s", section.start_seconds, section.end_seconds),
             db(section.integrated_lufs, "LUFS"),
             db(section.true_peak_dbtp, "dBTP")
-        ));
+        );
     }
     for file in missing {
-        text.push_str(&format!(
+        let _ = write!(
+            text,
             "\nwarning: audio \"{file}\" is not in the media provider"
-        ));
+        );
     }
     if let Some(path) = waveform {
-        text.push_str(&format!("\nwaveform {}", path.display()));
+        let _ = write!(text, "\nwaveform {}", path.display());
     }
     text
 }
@@ -1300,46 +1310,50 @@ fn waveform_image<'a, 'm: 'a, V: Video>(
         }
         let mid = top as f32 + wave_h as f32 / 2.;
         let scale = wave_h as f32 / 2.;
-        wave.push_str(&format!(
+        let _ = write!(
+            wave,
             "M{x} {:.1}V{:.1}",
             mid - hi * scale,
             mid - lo * scale + 0.5
-        ));
+        );
     }
 
     let loudness = crate::LoudnessAnalysis::new(left, right, sample_rate).momentary();
     let loudness_y = |lufs: f64| top as f64 + wave_h as f64 * (lufs.clamp(-60., 0.) / -60.);
-    let loudness_path: String = loudness
+    let loudness_path = loudness
         .iter()
         .enumerate()
-        .map(|(i, lufs)| {
+        .fold(String::new(), |mut path, (i, lufs)| {
             let x = x_of((i as f64 + 4.) * 0.1);
-            format!(
+            let _ = write!(
+                path,
                 "{}{x:.1} {:.1}",
                 if i == 0 { "M" } else { "L" },
                 loudness_y(*lufs)
-            )
-        })
-        .collect();
+            );
+            path
+        });
 
     let mut markers = String::new();
     for (name, seconds) in scenes {
         let x = x_of(*seconds);
-        markers.push_str(&format!(
+        let _ = write!(
+            markers,
             r##"<path d="M{x:.1} {top}V{}" stroke="#a78bfa" stroke-width="1"/><text x="{:.1}" y="{}" font-size="13" fill="#c4b5fd">{}</text>"##,
             top + wave_h,
             x + 3.,
             top - 8,
             name.replace('&', "&amp;").replace('<', "&lt;")
-        ));
+        );
     }
     for (_, seconds) in cues.iter().filter(|(_, s)| *s >= 0. && *s <= duration) {
         let x = x_of(*seconds);
-        markers.push_str(&format!(
+        let _ = write!(
+            markers,
             r##"<path d="M{x:.1} {}V{}" stroke="#fbbf24" stroke-width="1.5"/>"##,
             top + wave_h + 4,
             top + wave_h + 16
-        ));
+        );
     }
     let tick = [1., 2., 5., 10., 15., 30., 60.]
         .into_iter()
@@ -1347,12 +1361,13 @@ fn waveform_image<'a, 'm: 'a, V: Video>(
         .unwrap_or(120.);
     let mut t = 0.;
     while t <= duration {
-        markers.push_str(&format!(
+        let _ = write!(
+            markers,
             r##"<text x="{:.1}" y="{}" font-size="12" fill="#a1a1aa">{:.0}s</text>"##,
             x_of(t) + 2.,
             height - 12,
             t + offset_seconds
-        ));
+        );
         t += tick;
     }
 

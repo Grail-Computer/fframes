@@ -9,10 +9,8 @@ const SPRING: animation::Easing = animation::Easing::Spring {
 
 include_media_dir!(pub struct MarketingMedia, "examples/marketing/media");
 
-fframes::lazy_static::lazy_static! {
-    static ref SPRING_RUNTIME: animation::AnimationRuntime =
-        animation::AnimationRuntime::new(10., &SPRING);
-}
+static SPRING_RUNTIME: std::sync::LazyLock<animation::AnimationRuntime> =
+    std::sync::LazyLock::new(|| animation::AnimationRuntime::new(10., &SPRING));
 
 struct SpectrumValue<'a> {
     /// position represents how points are displayed on the screen, while the real array

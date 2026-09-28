@@ -16,8 +16,8 @@ impl Scene for RecapScene {
         Self::frames()
     }
 
-    fn render_frame<'a>(&'a self, _frame: Frame, _ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
-        let lb = Self::lb(&_frame);
+    fn render_frame<'a>(&'a self, frame: Frame, _ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
+        let lb = Self::lb(&frame);
         let i = lb.max(0.0).floor() as usize;
         let local = lb - i as f32;
         if i < WORDS.len() {

@@ -188,7 +188,7 @@ mod tests {
             let mut all = BTreeSet::new();
             for (start, frames) in &segments {
                 let mut sorted = frames.clone();
-                sorted.sort();
+                sorted.sort_unstable();
                 assert_eq!(sorted[0], *start);
                 assert!(sorted.windows(2).all(|w| w[1] == w[0] + 1));
                 assert_eq!(last_flags[start], *sorted.last().unwrap());

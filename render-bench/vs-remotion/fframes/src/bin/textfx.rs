@@ -1,4 +1,4 @@
-//! Workload "TextFx" (fframes side). Twin of ../remotion/src/TextFx.tsx: 3,334 text nodes
+//! Workload "`TextFx`" (fframes side). Twin of ../remotion/src/TextFx.tsx: 3,334 text nodes
 //! per frame (300 frames, 1,000,200 in total), 18 to 96 px, each with seeded "random"
 //! animated effects: rotation / scale / skew, opacity, HSL colour cycling, gradient fills,
 //! outlined text, drop shadows, glow (every 10th node), letter-spacing and per-letter
@@ -7,7 +7,7 @@
 //! ```sh
 //! DYLD_LIBRARY_PATH=/opt/homebrew/lib target/release/textfx metal out/textfx.mp4 medium
 //! ```
-//! Backends: `metal`, `vulkan` (MoltenVK), `cpu`. `GPU_CONTEXTS=n` for n Skia contexts.
+//! Backends: `metal`, `vulkan` (`MoltenVK`), `cpu`. `GPU_CONTEXTS=n` for n Skia contexts.
 
 use std::path::Path;
 use std::time::Instant;
@@ -74,16 +74,16 @@ const SHADOW_COLORS: [&str; 4] = ["#ff2d95", "#00e5ff", "#ffd400", "#7c4dff"];
 /// lowbias32 integer hash; `hash32` in TextFx.tsx is the same function.
 fn hash32(mut x: u32) -> u32 {
     x ^= x >> 16;
-    x = x.wrapping_mul(0x7feb352d);
+    x = x.wrapping_mul(0x7feb_352d);
     x ^= x >> 15;
-    x = x.wrapping_mul(0x846ca68b);
+    x = x.wrapping_mul(0x846c_a68b);
     x ^= x >> 16;
     x
 }
 
 /// Seeded random number in [0, 1) for node `i`, stream `k`.
 fn rnd(i: usize, k: u32) -> f64 {
-    hash32((i as u32) * 16 + k + 12345) as f64 / 4294967296.0
+    f64::from(hash32((i as u32) * 16 + k + 12345)) / 4_294_967_296.0
 }
 
 #[derive(PartialEq, Debug)]
@@ -206,7 +206,7 @@ impl Video for TextFx {
             let label = if kind == Kind::Wave {
                 WAVE_WORDS[(r(10) * WAVE_WORDS.len() as f64) as usize].to_string()
             } else if r(9) < 0.2 {
-                ((fi * 37 + i * 101) % 100000).to_string()
+                ((fi * 37 + i * 101) % 100_000).to_string()
             } else {
                 WORDS[(r(10) * WORDS.len() as f64) as usize].to_string()
             };

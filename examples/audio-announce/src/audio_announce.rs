@@ -8,7 +8,7 @@ include_media_dir!(pub struct AudioAnnounceMedia, "examples/audio-announce/media
 
 #[derive(Debug)]
 pub struct AudioAnnounce<'a> {
-    /// Font used for text. Defaults to inlined JetBrains Mono.
+    /// Font used for text. Defaults to inlined `JetBrains` Mono.
     pub font: Option<&'a str>,
     pub media: &'a AudioAnnounceMedia,
 }

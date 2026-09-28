@@ -7,7 +7,7 @@ use syn::ExprBlock;
 
 use usvgr::svgtree::{self, parse::SVG_NS, svgrtypes::PathSegment, AId, EId, NestedNodeKind};
 
-/// Convert a PathSegment to TokenStream manually since ToTokens impl
+/// Convert a `PathSegment` to `TokenStream` manually since `ToTokens` impl
 /// from svgrtypes isn't visible in proc-macro context
 fn path_segment_to_tokens(segment: &PathSegment) -> TokenStream {
     match segment {
@@ -261,7 +261,7 @@ impl<T: ToTokens> ToTokens for TokenizeableVec<T> {
         quote! {
             vec![#(#vec),*]
         }
-        .to_tokens(tokens)
+        .to_tokens(tokens);
     }
 }
 
@@ -348,9 +348,10 @@ impl ToTokens for MaybeNodeData {
         } = self;
 
         let children_tokens = tokenize_nodes(children);
-        let static_hash_token = match static_hash {
-            Some(hash) => quote! { Some(#hash) },
-            None => quote! { None },
+        let static_hash_token = if let Some(hash) = static_hash {
+            quote! { Some(#hash) }
+        } else {
+            quote! { None }
         };
 
         quote::quote! {
@@ -361,7 +362,7 @@ impl ToTokens for MaybeNodeData {
                 static_hash: #static_hash_token,
             })
         }
-        .to_tokens(tokens)
+        .to_tokens(tokens);
     }
 }
 
@@ -570,6 +571,8 @@ fn collect_static_candidates(
 /// of everything it references.  A reference that can not be resolved to a
 /// static element in this invocation (an element defined elsewhere, a
 /// dynamic element, or a reference cycle) makes the node dynamic.
+// `None` is not resolved yet, `Some(None)` is resolved to no static hash.
+#[allow(clippy::option_option)]
 fn resolve_static_hash(
     index: usize,
     candidates: &[StaticCandidate],
@@ -597,14 +600,13 @@ fn resolve_static_hash(
         local_hash.hash(&mut hasher);
         let mut all_static = true;
         for reference in &candidate.references {
-            match ids.get(reference).and_then(|&target| {
+            if let Some(hash) = ids.get(reference).and_then(|&target| {
                 resolve_static_hash(target, candidates, ids, resolved, visiting)
             }) {
-                Some(hash) => hash.hash(&mut hasher),
-                None => {
-                    all_static = false;
-                    break;
-                }
+                hash.hash(&mut hasher);
+            } else {
+                all_static = false;
+                break;
             }
         }
         visiting.pop();
@@ -659,7 +661,7 @@ fn assign_static_hashes(nodes: &mut [MaybeParsedValue<MaybeNodeData>]) {
     }
 }
 
-/// Either inline nodes as values or if we have subtrees create into_flattened expression unwrapping trees.
+/// Either inline nodes as values or if we have subtrees create `into_flattened` expression unwrapping trees.
 fn tokenize_nodes(nodes: &[MaybeParsedValue<MaybeNodeData>]) -> TokenStream {
     if nodes
         .iter()
@@ -695,10 +697,14 @@ fn tokenize_nodes(nodes: &[MaybeParsedValue<MaybeNodeData>]) -> TokenStream {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref ATTRIBUTE_NAMES_LIST: Vec<&'static str> =
-        svgtree::ATTRIBUTES.entries.iter().map(|(name, _)| *name).collect();
-}
+static ATTRIBUTE_NAMES_LIST: std::sync::LazyLock<Vec<&'static str>> =
+    std::sync::LazyLock::new(|| {
+        svgtree::ATTRIBUTES
+            .entries
+            .iter()
+            .map(|(name, _)| *name)
+            .collect()
+    });
 
 fn detailed_attribute_error(attribute: &str, span: Span) -> syn::Error {
     use std::borrow::Cow;
@@ -736,9 +742,8 @@ fn maybe_parse_svg_attribute(
     if attribute.name_as_string().as_deref() == Some("xmlns") {
         if attribute.value_as_string().as_deref() == Some(SVG_NS) {
             return Ok(None);
-        } else {
-            return Err(syn::Error::new(attribute_span, format!("Found non svg namespace: {}, please make sure that only svg xml is supported.\nPlease make sure to enter a valid SVG namespace => {SVG_NS}", attribute.value_as_string().unwrap_or_default())));
         }
+        return Err(syn::Error::new(attribute_span, format!("Found non svg namespace: {}, please make sure that only svg xml is supported.\nPlease make sure to enter a valid SVG namespace => {SVG_NS}", attribute.value_as_string().unwrap_or_default())));
     }
 
     let aid = AId::from_str(attribute.name_as_string().unwrap().as_str())
@@ -751,11 +756,9 @@ fn maybe_parse_svg_attribute(
         ));
     }
 
-    let value = maybe_value(
-        attribute,
-        |block| block.into_token_stream(),
-        |value| Ok(String::from(value)),
-    )?;
+    let value = maybe_value(attribute, quote::ToTokens::into_token_stream, |value| {
+        Ok(String::from(value))
+    })?;
 
     Ok(Some((aid, value)))
 }
@@ -819,7 +822,7 @@ fn map_text_node_children(
             NestedNodeKind::Element { tag_name },
             parse_element_attributes(node, tag_name)?,
             map_text_node_children(node.children.as_slice(), tag_name, fframes_crate_ident)?,
-        )))
+        )));
     }
 
     Ok(parsed_nodes)

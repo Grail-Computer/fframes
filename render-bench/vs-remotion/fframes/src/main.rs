@@ -6,7 +6,7 @@
 //! cargo build --release -p vs-remotion-bench
 //! DYLD_LIBRARY_PATH=/opt/homebrew/lib target/release/vs-remotion-bench metal out.mp4
 //! ```
-//! Backends: `metal`, `vulkan` (MoltenVK on macOS), `cpu` (svgr / tiny-skia).
+//! Backends: `metal`, `vulkan` (`MoltenVK` on macOS), `cpu` (svgr / tiny-skia).
 
 use std::path::Path;
 use std::time::Instant;

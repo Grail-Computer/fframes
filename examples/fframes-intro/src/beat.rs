@@ -34,10 +34,8 @@ pub fn gbeat(frame: &Frame) -> f32 {
 /// Number of frames between two beats; `None` stands for the start or end of
 /// the video.
 pub fn span_frames(start: Option<f32>, end: Option<f32>) -> usize {
-    let a = start.map(beat_frame).unwrap_or(0);
-    let b = end
-        .map(beat_frame)
-        .unwrap_or((TOTAL_SECONDS * FPS as f32).round() as usize);
+    let a = start.map_or(0, beat_frame);
+    let b = end.map_or((TOTAL_SECONDS * FPS as f32).round() as usize, beat_frame);
     b - a
 }
 

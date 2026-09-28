@@ -27,12 +27,12 @@ impl Biquad {
 /// The two K-weighting stages for a sample rate (libebur128 `ebur128_init_filter`).
 fn k_weighting(sample_rate: f64) -> [Biquad; 2] {
     let shelf = {
-        let f0 = 1681.974450955533;
-        let g = 3.999843853973347;
-        let q = 0.7071752369554196;
+        let f0 = 1_681.974_450_955_533;
+        let g = 3.999_843_853_973_347;
+        let q = 0.707_175_236_955_419_6;
         let k = (std::f64::consts::PI * f0 / sample_rate).tan();
         let vh = 10f64.powf(g / 20.);
-        let vb = vh.powf(0.4996667741545416);
+        let vb = vh.powf(0.499_666_774_154_541_6);
         let a0 = 1. + k / q + k * k;
         Biquad {
             b: [
@@ -45,8 +45,8 @@ fn k_weighting(sample_rate: f64) -> [Biquad; 2] {
         }
     };
     let high_pass = {
-        let f0 = 38.13547087602444;
-        let q = 0.5003270373238773;
+        let f0 = 38.135_470_876_024_44;
+        let q = 0.500_327_037_323_877_3;
         let k = (std::f64::consts::PI * f0 / sample_rate).tan();
         let a0 = 1. + k / q + k * k;
         Biquad {
@@ -61,71 +61,71 @@ fn k_weighting(sample_rate: f64) -> [Biquad; 2] {
 /// BS.1770 Annex 2: 4x oversampling interpolator, 4 phases of 12 taps.
 const TRUE_PEAK_PHASES: [[f64; 12]; 4] = [
     [
-        0.0017089843750,
-        0.0109863281250,
-        -0.0196533203125,
-        0.0332031250000,
-        -0.0594482421875,
-        0.1373291015625,
-        0.9721679687500,
-        -0.1022949218750,
-        0.0476074218750,
-        -0.0266113281250,
-        0.0148925781250,
-        -0.0083007812500,
+        0.001_708_984_375_0,
+        0.010_986_328_125_0,
+        -0.019_653_320_312_5,
+        0.033_203_125_000_0,
+        -0.059_448_242_187_5,
+        0.137_329_101_562_5,
+        0.972_167_968_750_0,
+        -0.102_294_921_875_0,
+        0.047_607_421_875_0,
+        -0.026_611_328_125_0,
+        0.014_892_578_125_0,
+        -0.008_300_781_250_0,
     ],
     [
-        -0.0291748046875,
-        0.0292968750000,
-        -0.0517578125000,
-        0.0891113281250,
-        -0.1665039062500,
-        0.4650878906250,
-        0.7797851562500,
-        -0.2003173828125,
-        0.1015625000000,
-        -0.0582275390625,
-        0.0330810546875,
-        -0.0189208984375,
+        -0.029_174_804_687_5,
+        0.029_296_875_000_0,
+        -0.051_757_812_500_0,
+        0.089_111_328_125_0,
+        -0.166_503_906_250_0,
+        0.465_087_890_625_0,
+        0.779_785_156_250_0,
+        -0.200_317_382_812_5,
+        0.101_562_500_000_0,
+        -0.058_227_539_062_5,
+        0.033_081_054_687_5,
+        -0.018_920_898_437_5,
     ],
     [
-        -0.0189208984375,
-        0.0330810546875,
-        -0.0582275390625,
-        0.1015625000000,
-        -0.2003173828125,
-        0.7797851562500,
-        0.4650878906250,
-        -0.1665039062500,
-        0.0891113281250,
-        -0.0517578125000,
-        0.0292968750000,
-        -0.0291748046875,
+        -0.018_920_898_437_5,
+        0.033_081_054_687_5,
+        -0.058_227_539_062_5,
+        0.101_562_500_000_0,
+        -0.200_317_382_812_5,
+        0.779_785_156_250_0,
+        0.465_087_890_625_0,
+        -0.166_503_906_250_0,
+        0.089_111_328_125_0,
+        -0.051_757_812_500_0,
+        0.029_296_875_000_0,
+        -0.029_174_804_687_5,
     ],
     [
-        -0.0083007812500,
-        0.0148925781250,
-        -0.0266113281250,
-        0.0476074218750,
-        -0.1022949218750,
-        0.9721679687500,
-        0.1373291015625,
-        -0.0594482421875,
-        0.0332031250000,
-        -0.0196533203125,
-        0.0109863281250,
-        0.0017089843750,
+        -0.008_300_781_250_0,
+        0.014_892_578_125_0,
+        -0.026_611_328_125_0,
+        0.047_607_421_875_0,
+        -0.102_294_921_875_0,
+        0.972_167_968_750_0,
+        0.137_329_101_562_5,
+        -0.059_448_242_187_5,
+        0.033_203_125_000_0,
+        -0.019_653_320_312_5,
+        0.010_986_328_125_0,
+        0.001_708_984_375_0,
     ],
 ];
 
 fn true_peak(channel: &[f32]) -> f64 {
-    let mut peak: f64 = channel.iter().fold(0., |m, s| m.max(s.abs() as f64));
+    let mut peak: f64 = channel.iter().fold(0., |m, s| m.max(f64::from(s.abs())));
     for n in 0..channel.len() {
         for phase in &TRUE_PEAK_PHASES {
             let mut acc = 0.;
             for (k, coefficient) in phase.iter().enumerate() {
                 if n >= k {
-                    acc += coefficient * channel[n - k] as f64;
+                    acc += coefficient * f64::from(channel[n - k]);
                 }
             }
             peak = peak.max(acc.abs());
@@ -170,7 +170,7 @@ impl LoudnessAnalysis {
         for channel in [left, right] {
             let [mut shelf, mut high_pass] = k_weighting(sample_rate as f64);
             for (i, sample) in channel.iter().enumerate().take(hops.len() * hop) {
-                let y = high_pass.process(shelf.process(*sample as f64));
+                let y = high_pass.process(shelf.process(f64::from(*sample)));
                 hops[i / hop] += y * y;
             }
         }
@@ -314,7 +314,7 @@ pub fn analyze_audio(
     sections: &[(String, Range<usize>)],
 ) -> AudioReport {
     let loudness = LoudnessAnalysis::new(left, right, sample_rate);
-    let sample_peak = left.iter().chain(right).fold(0f32, |m, s| m.max(s.abs())) as f64;
+    let sample_peak = f64::from(left.iter().chain(right).fold(0f32, |m, s| m.max(s.abs())));
     let peak_of = |range: Range<usize>| {
         let range = range.start.min(left.len())..range.end.min(left.len());
         true_peak(&left[range.clone()]).max(true_peak(&right[range]))
@@ -375,7 +375,7 @@ pub fn encode_wav(left: &[f32], right: &[f32], sample_rate: usize, float: bool) 
     out.extend_from_slice(&channels.to_le_bytes());
     out.extend_from_slice(&(sample_rate as u32).to_le_bytes());
     out.extend_from_slice(
-        &(sample_rate as u32 * channels as u32 * bytes_per_sample as u32).to_le_bytes(),
+        &(sample_rate as u32 * u32::from(channels) * u32::from(bytes_per_sample)).to_le_bytes(),
     );
     out.extend_from_slice(&(channels * bytes_per_sample).to_le_bytes());
     out.extend_from_slice(&(bytes_per_sample * 8).to_le_bytes());
@@ -428,13 +428,13 @@ mod tests {
     fn k_weighting_matches_the_spec_at_48k() {
         let [shelf, high_pass] = k_weighting(48000.);
         let close = |a: f64, b: f64| (a - b).abs() < 1e-12;
-        assert!(close(shelf.b[0], 1.53512485958697));
-        assert!(close(shelf.b[1], -2.69169618940638));
-        assert!(close(shelf.b[2], 1.19839281085285));
-        assert!(close(shelf.a[0], -1.69065929318241));
-        assert!(close(shelf.a[1], 0.73248077421585));
-        assert!(close(high_pass.a[0], -1.99004745483398));
-        assert!(close(high_pass.a[1], 0.99007225036621));
+        assert!(close(shelf.b[0], 1.535_124_859_586_97));
+        assert!(close(shelf.b[1], -2.691_696_189_406_38));
+        assert!(close(shelf.b[2], 1.198_392_810_852_85));
+        assert!(close(shelf.a[0], -1.690_659_293_182_41));
+        assert!(close(shelf.a[1], 0.732_480_774_215_85));
+        assert!(close(high_pass.a[0], -1.990_047_454_833_98));
+        assert!(close(high_pass.a[1], 0.990_072_250_366_21));
     }
 
     #[test]

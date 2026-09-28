@@ -20,11 +20,13 @@ fn main() {
         .output()
         .ok()
         .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-        .unwrap_or_else(|| {
-            println!("cargo:warning=git log failed, the origin scene will have no commits");
-            String::new()
-        });
+        .map_or_else(
+            || {
+                println!("cargo:warning=git log failed, the origin scene will have no commits");
+                String::new()
+            },
+            |o| String::from_utf8_lossy(&o.stdout).into_owned(),
+        );
 
     std::fs::write(out, log).unwrap();
 }

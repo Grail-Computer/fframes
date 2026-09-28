@@ -35,7 +35,7 @@ pub struct RenderOptions<'a, 'media> {
     /// are set to 1920x1080, setting `scale_resolution` to 2.0 will result in the video
     /// being rendered to 3840x2160 (4k) resolution.
     pub scale_resolution: f64,
-    /// If `true` locates and loads system font on MacOS, Windows and Linux OSes.
+    /// If `true` locates and loads system font on `MacOS`, Windows and Linux OSes.
     /// It is anyway recommended to provide all the font as either statically and dynamically
     /// linked media.
     ///
@@ -73,15 +73,15 @@ impl Default for RenderOptions<'_, '_> {
             media: None,
             scale_resolution: 1.0,
             logger: FFramesLoggerVariant::Compact,
-            audio_encoder_options: Default::default(),
-            video_encoder_options: Default::default(),
+            audio_encoder_options: EncoderOptions::default(),
+            video_encoder_options: EncoderOptions::default(),
             override_fps: None,
             load_system_fonts: false,
             default_font: "Arial",
             abort_signal: None,
             tmp_files_directory: None,
             frame_range: None,
-            audio_mix: Default::default(),
+            audio_mix: crate::AudioMixOptions::default(),
         }
     }
 }
@@ -120,7 +120,7 @@ impl<'a, 'media: 'a> FFramesRendererRuntime<'a> {
                 let video_duration = media
                     .resolve_video(name)
                     .and_then(|video| video.metadata)
-                    .map(|metadata| metadata.duration as f64);
+                    .map(|metadata| f64::from(metadata.duration));
 
                 video_duration
                     .or_else(|| {
@@ -128,9 +128,9 @@ impl<'a, 'media: 'a> FFramesRendererRuntime<'a> {
                             .resolve_audio(name)
                             .and_then(|main_audio| match main_audio {
                                 AudioData::Preloaded(data) => {
-                                    Some(data.samples.len() as f64 / data.sample_rate as f64)
+                                    Some(data.samples.len() as f64 / f64::from(data.sample_rate))
                                 }
-                                _ => None,
+                                AudioData::Lazy => None,
                             })
                     })
                     .ok_or_else(|| {
@@ -252,7 +252,7 @@ pub fn render<
 /// Renders a single frame into the output image buffer.
 /// Prints all the rendering warns and errors for the frame along with the svg file itself.
 /// Returns a byte representation specific to the render backend used.
-/// For CpuRenderBackend it is a RGBA image of the video size.
+/// For `CpuRenderBackend` it is a RGBA image of the video size.
 ///
 /// Convert the RGBA output to image using `image` crate:
 ///

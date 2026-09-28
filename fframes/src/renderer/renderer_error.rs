@@ -9,7 +9,7 @@ pub enum RenderEncodingError {
     CantOpenFile(PathBuf),
     CantAllocate(String),
     CantWriteFrame(String),
-    /// The encoder (avcodec_send_frame) rejected the frame. Contains the ffmpeg
+    /// The encoder (`avcodec_send_frame`) rejected the frame. Contains the ffmpeg
     /// error description along with optional context about which frame failed.
     CantEncodeFrame {
         error: String,
@@ -38,7 +38,7 @@ impl fmt::Display for RenderEncodingError {
                 Self::Aborted => "Aborted by the user".to_owned(),
                 Self::MissingVideoStreamInFile(file) =>
                     format!("Missing video stream in file {}", file.to_string_lossy().as_ref().cyan()),
-                Self::CantOpenFile(file) => format!("Missing video stream in file {}", file.to_string_lossy().as_ref().cyan()),
+                Self::CantOpenFile(file) => format!("Can not open file {}", file.to_string_lossy().as_ref().cyan()),
                 Self::UnknownExtension(file) => format!(
                     "Can not deduce file format of output file {} from extension.",
                     file.to_string_lossy().as_ref().cyan().bold()

@@ -12,7 +12,5 @@ wasm-bindgen = "0.2.100"
 fframes-editor-controller = { path = "../../../../fframes-editor-controller" }
 motion-graphics-example = { path = "../../", default-features = false }
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-	'cfg(wasm_bindgen_unstable_test_coverage)',
-] }
+[lints]
+workspace = true

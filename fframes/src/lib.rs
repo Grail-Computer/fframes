@@ -1,7 +1,7 @@
 //! fframes renders videos from Rust code. A video is a type that implements [`Video`]. It declares
 //! the size, frame rate and duration once and returns an SVG tree ([`Svgr`]) for every frame from
 //! the [`svgr!`] macro. The renderer rasterises the frames on all cores, mixes the audio and
-//! encodes the result with FFmpeg.
+//! encodes the result with `FFmpeg`.
 //!
 //! # Pipeline
 //!
@@ -20,7 +20,7 @@
 //!    [`cpu::CpuRenderingBackend`] renders one video segment per thread with tiny-skia. The Skia
 //!    backend in the `fframes_skia_renderer` crate walks the tree on the GPU and also executes
 //!    [`Shader`] layers.
-//! 5. Segments are encoded through FFmpeg ([`EncoderOptions`]), concatenated, and muxed with the
+//! 5. Segments are encoded through `FFmpeg` ([`EncoderOptions`]), concatenated, and muxed with the
 //!    audio mix ([`AudioMixOptions`]: summing, ducking, fades, master limiter).
 //!
 //! # Minimal video
@@ -85,17 +85,17 @@
 //!   subtrees. Required by the Skia backend and by [`Shader`].
 //! - `exif`: EXIF orientation of loaded images.
 //! - Codecs `h264`, `h265`, `aac`, `mp3lame`, `opus`, `vpx`: compile the library into the static
-//!   FFmpeg build. Some of them need `libav-agree-gpl`, `libav-agree-nonfree` or
-//!   `libav-agree-version3`, which state that you accept the corresponding FFmpeg license terms.
+//!   `FFmpeg` build. Some of them need `libav-agree-gpl`, `libav-agree-nonfree` or
+//!   `libav-agree-version3`, which state that you accept the corresponding `FFmpeg` license terms.
 //! - Hardware acceleration `videotoolbox`, `audiotoolbox`, `vaapi`, `nvidia`, `qsv`, `vulkan`,
-//!   `mediacodec`: enable the platform encoders and decoders in FFmpeg.
+//!   `mediacodec`: enable the platform encoders and decoders in `FFmpeg`.
 //!
-//! # FFmpeg
+//! # `FFmpeg`
 //!
-//! Decoding, encoding and muxing use the FFmpeg libraries through `ffmpeg-sys-next`, re-exported
-//! as [`ffmpeg_sys_fframes`]. On Linux and macOS FFmpeg is compiled from source during
+//! Decoding, encoding and muxing use the `FFmpeg` libraries through `ffmpeg-sys-next`, re-exported
+//! as [`ffmpeg_sys_fframes`]. On Linux and macOS `FFmpeg` is compiled from source during
 //! `cargo build` and linked statically, so the toolchain listed in the repository README (nasm,
-//! yasm, clang, the codec dev packages) must be installed. On Windows a prebuilt FFmpeg 9 is
+//! yasm, clang, the codec dev packages) must be installed. On Windows a prebuilt `FFmpeg` 9 is
 //! linked through `FFMPEG_DIR` or vcpkg and the codec features are not available.
 //!
 mod audio_analysis;

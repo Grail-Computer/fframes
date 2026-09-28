@@ -1,5 +1,5 @@
 clippy *ARGS:
-  cargo clippy {{ARGS}} -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match -A clippy::single-range-in-vec-init
+  cargo clippy {{ARGS}} -- -D warnings
 
 clippy-fix *ARGS:
   @just clippy --fix {{ARGS}}

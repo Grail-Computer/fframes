@@ -128,8 +128,8 @@ impl MediaDirectory {
                             }
                         }
                         _ => {}
-                    };
-                };
+                    }
+                }
 
                 Ok(())
             })?;

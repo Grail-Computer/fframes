@@ -429,7 +429,7 @@ fn render_frames<TBackend: SkiaBackend>(
             return Err(FFramesRendererError::Custom(
                 "Failed to read pixels from Skia image".to_string(),
             ));
-        };
+        }
 
         // Video-frame images view the tree's pixel buffers without
         // copying, so the tree has to outlive the flush and readback.

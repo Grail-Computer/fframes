@@ -52,6 +52,8 @@ fn create_svgr_ident(
 }
 
 #[cfg(not(feature = "compile-time-svgtree"))]
+// Shares the signature of the `compile-time-svgtree` variant, which can fail.
+#[allow(clippy::unnecessary_wraps)]
 fn create_svgr_ident(
     fframes_crate_ident: &Ident,
     nodes: Vec<Node>,

@@ -109,12 +109,12 @@ pub fn diff_frames(
             differing += 1;
             diff.extend_from_slice(&[255, 0, 0, 255]);
         } else {
-            let gray = ((e[0] as u32 + e[1] as u32 + e[2] as u32) / 3 / 4) as u8;
+            let gray = ((u32::from(e[0]) + u32::from(e[1]) + u32::from(e[2])) / 3 / 4) as u8;
             diff.extend_from_slice(&[gray, gray, gray, 255]);
         }
     }
 
-    let total = (expected.width * expected.height).max(1) as f64;
+    let total = f64::from((expected.width * expected.height).max(1));
     (
         differing as f64 / total,
         Some(RgbaFrame {
@@ -227,13 +227,12 @@ pub fn assert_frames<'a, 'media: 'a, TVideo: Video>(
         })
         .collect();
 
-    if !failed.is_empty() {
-        panic!(
-            "{} frame snapshot(s) differ (FFRAMES_UPDATE_SNAPSHOTS=1 accepts them):\n{}",
-            failed.len(),
-            failed.join("\n")
-        );
-    }
+    assert!(
+        failed.is_empty(),
+        "{} frame snapshot(s) differ (FFRAMES_UPDATE_SNAPSHOTS=1 accepts them):\n{}",
+        failed.len(),
+        failed.join("\n")
+    );
 
     results
 }

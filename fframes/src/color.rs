@@ -117,7 +117,7 @@ impl Color {
                 b: (b * 16 + b),
                 a: (a * 16 + a),
             }
-        } else if num <= 0xffffff {
+        } else if num <= 0x00ff_ffff {
             // Handle 6-digit hex (RRGGBB)
             Color {
                 r: ((num >> 16) & 0xFF) as u8,
@@ -246,10 +246,10 @@ struct ColorF32 {
 impl From<Color> for ColorF32 {
     fn from(Color { r, g, b, a }: Color) -> Self {
         ColorF32 {
-            r: r as f32,
-            g: g as f32,
-            b: b as f32,
-            a: a as f32,
+            r: f32::from(r),
+            g: f32::from(g),
+            b: f32::from(b),
+            a: f32::from(a),
         }
     }
 }
@@ -275,7 +275,7 @@ impl fmt::Display for Color {
         if *a == 255 {
             write!(formatter, "rgb({r}, {g}, {b})")
         } else {
-            let alpha = *a as f32 / 255.0;
+            let alpha = f32::from(*a) / 255.0;
             write!(formatter, "rgba({r}, {g}, {b}, {alpha:.3})")
         }
     }
@@ -306,10 +306,10 @@ mod test {
     pub fn hex_num_parsing() {
         assert_eq!(Color::hex_num(0xf0f), Color::rgba(255, 0, 255, 255));
         assert_eq!(Color::hex_num(0xf0f8), Color::rgba(255, 0, 255, 136));
-        assert_eq!(Color::hex_num(0xff00ff), Color::rgba(255, 0, 255, 255));
-        assert_eq!(Color::hex_num(0xff00ff80), Color::rgba(255, 0, 255, 128));
-        assert_eq!(Color::hex_num(0xef4444), Color::rgba(239, 68, 68, 255));
-        assert_eq!(Color::hex_num(0x1c1917), Color::rgba(28, 25, 23, 255));
+        assert_eq!(Color::hex_num(0x00ff_00ff), Color::rgba(255, 0, 255, 255));
+        assert_eq!(Color::hex_num(0xff00_ff80), Color::rgba(255, 0, 255, 128));
+        assert_eq!(Color::hex_num(0x00ef_4444), Color::rgba(239, 68, 68, 255));
+        assert_eq!(Color::hex_num(0x001c_1917), Color::rgba(28, 25, 23, 255));
     }
 
     #[test]

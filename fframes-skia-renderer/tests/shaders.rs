@@ -57,7 +57,7 @@ fn assert_near(actual: [u8; 4], expected: [u8; 4]) {
     let close = actual
         .iter()
         .zip(expected)
-        .all(|(a, e)| (*a as i32 - e as i32).abs() <= 4);
+        .all(|(a, e)| (i32::from(*a) - i32::from(e)).abs() <= 4);
     assert!(close, "expected ~{expected:?}, got {actual:?}");
 }
 
@@ -136,7 +136,10 @@ fn shadertoy_builtins_defines_and_bottom_left_origin() {
         top[1] > 245 && bottom[1] < 8,
         "top {top:?}, bottom {bottom:?}"
     );
-    assert!((top[0] as i32 - 128).abs() <= 2, "iTime = 0.5, got {top:?}");
+    assert!(
+        (i32::from(top[0]) - 128).abs() <= 2,
+        "iTime = 0.5, got {top:?}"
+    );
     assert_eq!(top[3], 255);
 }
 

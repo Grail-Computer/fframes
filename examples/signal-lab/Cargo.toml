@@ -28,3 +28,5 @@ doctest = false
 name = "signal-lab"
 path = "src/main.rs"
 
+[lints]
+workspace = true

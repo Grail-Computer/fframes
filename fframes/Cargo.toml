@@ -94,7 +94,5 @@ libav-agree-version3 = ["fframes-media/libav-agree-version3"]
 features = ["cli", "compile-time-svgtree", "exif"]
 rustc-args = ["--cfg", "fframes_docsrs"]
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(wasm_bindgen_unstable_test_coverage)',
-] }
+[lints]
+workspace = true

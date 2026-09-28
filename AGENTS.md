@@ -41,10 +41,9 @@ just render <example-name>
 cargo build
 cargo build --release
 
-# Lint (warnings treated as errors)
 just clippy
 # Or directly:
-cargo clippy -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match -A clippy::single-range-in-vec-init
+cargo clippy -- -D warnings
 
 # Run all tests
 just test

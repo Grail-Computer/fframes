@@ -41,8 +41,8 @@ unsafe fn supported_codec_config<'a, T>(
             codec,
             config,
             0,
-            &mut configs,
-            &mut count,
+            &raw mut configs,
+            &raw mut count,
         );
 
         if ret < 0 || configs.is_null() || count <= 0 {
@@ -50,7 +50,7 @@ unsafe fn supported_codec_config<'a, T>(
         }
 
         Some(std::slice::from_raw_parts(
-            configs as *const T,
+            configs.cast::<T>(),
             count as usize,
         ))
     }
@@ -108,10 +108,10 @@ impl Stream {
             // in case encoder is not needed (remux) we won't allocate the encoder
             if !self.enc.is_null() {
                 avcodec_send_frame(self.enc, std::ptr::null_mut());
-                avcodec_free_context(&mut self.enc);
+                avcodec_free_context(&raw mut self.enc);
 
                 if let StreamVariant::Audio(mut swr_ctx) = self.variant {
-                    swr_free(&mut swr_ctx);
+                    swr_free(&raw mut swr_ctx);
                 }
             }
         }
@@ -308,7 +308,7 @@ impl Stream {
 
             (*c).sample_fmt = fit_sample_format(codec, encoder_options.sample_format);
             (*c).sample_rate = validated_sample_rate;
-            (*c).bit_rate = encoder_options.bitrate.unwrap_or(192000);
+            (*c).bit_rate = encoder_options.bitrate.unwrap_or(192_000);
             (*st).time_base = AVRational {
                 num: 1,
                 den: validated_sample_rate,
@@ -367,7 +367,7 @@ impl Stream {
         if let Ok(name) = CString::new(name).map_err(RenderEncodingError::CStringError) {
             unsafe {
                 av_opt_set_int(
-                    swr_ctx as *mut std::ffi::c_void,
+                    swr_ctx.cast::<std::ffi::c_void>(),
                     name.as_ptr(),
                     val.into(),
                     0,
@@ -384,9 +384,9 @@ impl Stream {
         if let Ok(name) = CString::new(name).map_err(RenderEncodingError::CStringError) {
             unsafe {
                 av_opt_set_chlayout(
-                    swr_ctx as *mut std::ffi::c_void,
+                    swr_ctx.cast::<std::ffi::c_void>(),
                     name.as_ptr(),
-                    val as *const AVChannelLayout,
+                    std::ptr::from_ref::<AVChannelLayout>(val),
                     0,
                 );
             }
@@ -396,7 +396,7 @@ impl Stream {
     pub(crate) unsafe fn set_swr_fmt(swr_ctx: *mut SwrContext, name: &str, val: AVSampleFormat) {
         if let Ok(name) = CString::new(name).map_err(RenderEncodingError::CStringError) {
             unsafe {
-                av_opt_set_sample_fmt(swr_ctx as *mut std::ffi::c_void, name.as_ptr(), val, 0);
+                av_opt_set_sample_fmt(swr_ctx.cast::<std::ffi::c_void>(), name.as_ptr(), val, 0);
             }
         }
     }

@@ -67,10 +67,9 @@ impl SkiaMetalCtx {
         width: usize,
         height: usize,
     ) -> FFramesRendererResult<(Self, Surface, DirectContext)> {
-        let device = unsafe { metal_rs::Device::from_ptr(device_ptr as *mut _) };
-        let command_queue =
-            unsafe { metal_rs::CommandQueue::from_ptr(command_queue_ptr as *mut _) };
-        let texture = unsafe { metal_rs::Texture::from_ptr(texture_ptr as *mut _) };
+        let device = unsafe { metal_rs::Device::from_ptr(device_ptr.cast()) };
+        let command_queue = unsafe { metal_rs::CommandQueue::from_ptr(command_queue_ptr.cast()) };
+        let texture = unsafe { metal_rs::Texture::from_ptr(texture_ptr.cast()) };
         let texture_info = unsafe { mtl::TextureInfo::new(texture.as_ptr() as mtl::Handle) };
 
         let backend = unsafe {

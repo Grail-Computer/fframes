@@ -28,10 +28,7 @@ fn slam(lb: f32) -> Svgr<'static> {
     let dx = (hash(lb * 97.0) - 0.5) * shake;
     let dy = (hash(lb * 53.0 + 3.0) - 0.5) * shake;
     let dot = snap(lb - 1.0);
-    let t = format!(
-        "translate({} {}) translate(150 790) scale({s}) translate(-150 -790)",
-        dx, dy
-    );
+    let t = format!("translate({dx} {dy}) translate(150 790) scale({s}) translate(-150 -790)");
     fframes::svgr!(
         <g>
             <rect width="1920" height="1080" fill={ORANGE} />

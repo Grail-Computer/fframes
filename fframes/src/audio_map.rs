@@ -115,8 +115,7 @@ impl AudioTimestamp<'_> {
         name: &'a str,
     ) -> Option<Vec<&'a str>> {
         match self {
-            AudioTimestamp::Eof => Some(vec![name]),
-            AudioTimestamp::DurationOfAudio(_) => Some(vec![name]),
+            AudioTimestamp::Eof | AudioTimestamp::DurationOfAudio(_) => Some(vec![name]),
             AudioTimestamp::__Subtract(add) | AudioTimestamp::__Add(add) => {
                 let (a, b) = &**add;
                 let a = a.infer_relying_on_dynamic_duration_audio_files(name);
@@ -132,9 +131,9 @@ impl AudioTimestamp<'_> {
                     (None, None) => None,
                 }
             }
-            AudioTimestamp::Frame(_) => None,
-            AudioTimestamp::Second(_) => None,
-            AudioTimestamp::Time { .. } => None,
+            AudioTimestamp::Frame(_) | AudioTimestamp::Second(_) | AudioTimestamp::Time { .. } => {
+                None
+            }
         }
     }
 
@@ -149,10 +148,12 @@ impl AudioTimestamp<'_> {
     ) -> error::Result<f64> {
         Ok(match self {
             AudioTimestamp::Frame(frame) => *frame as f64 / fps as f64,
-            AudioTimestamp::Second(seconds) => *seconds as f64,
+            AudioTimestamp::Second(seconds) => f64::from(*seconds),
             AudioTimestamp::Eof => resolve_audio_duration(filename)? + eof_base.unwrap_or(0.),
             AudioTimestamp::DurationOfAudio(filename) => resolve_audio_duration(filename)?,
-            AudioTimestamp::Time { minutes, seconds } => *minutes as f64 * 60. + *seconds as f64,
+            AudioTimestamp::Time { minutes, seconds } => {
+                f64::from(*minutes) * 60. + f64::from(*seconds)
+            }
             AudioTimestamp::__Add(add) => {
                 let (a, b) = &**add;
                 a.to_seconds(filename, fps, eof_base, resolve_audio_duration)?
@@ -391,7 +392,7 @@ pub struct ResolvedAudioTrack<TUnit: AudioTimelineUnit> {
 
 type AudioTimeline<TUnit> = Vec<ResolvedAudioTrack<TUnit>>;
 
-/// The resolved audio_map contain each audio file position and duration in specified units.
+/// The resolved `audio_map` contain each audio file position and duration in specified units.
 #[derive(Debug)]
 pub struct ResolvedAudioMap<TUnit: AudioTimelineUnit>(pub(crate) AudioTimeline<TUnit>);
 
@@ -399,7 +400,7 @@ impl<TUnit: AudioTimelineUnit + Copy> ResolvedAudioMap<TUnit> {
     pub(crate) fn round_max_duration(&mut self, max_duration: TUnit) {
         let max_duration_usize = max_duration.as_usize();
 
-        for track in self.0.iter_mut() {
+        for track in &mut self.0 {
             if track.range.end.as_usize() > max_duration_usize {
                 track.range.end = max_duration;
             }
@@ -437,9 +438,9 @@ impl<'a> AudioMap<'a> {
         let mut map = self.0.unwrap_or_default();
 
         if let Some(scenes) = scene_audios.0.as_ref() {
-            for audio_map in scenes.iter() {
+            for audio_map in scenes {
                 if let Some(scene_audio_map) = audio_map.audio_map.0.as_ref() {
-                    map.extend(scene_audio_map.iter().cloned())
+                    map.extend(scene_audio_map.iter().cloned());
                 }
             }
         }
@@ -496,7 +497,7 @@ impl<'a> AudioMap<'a> {
                         let end = range.end.to_seconds(
                             file,
                             tb.fps,
-                            Some(start - mix.offset as f64),
+                            Some(start - f64::from(mix.offset)),
                             &resolve_audio_duration,
                         )?;
 
@@ -559,7 +560,7 @@ impl<'a> AudioMap<'a> {
             let audio_data = ctx.get_audio(filename).ok_or_else(|| {
                 crate::error::FFramesError::RequiredAudioNotFound(filename.to_string())
             })?;
-            Ok(audio_data.duration_in_seconds() as f64)
+            Ok(f64::from(audio_data.duration_in_seconds()))
         })
     }
 }

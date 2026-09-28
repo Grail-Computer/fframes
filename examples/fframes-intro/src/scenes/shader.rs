@@ -1,5 +1,5 @@
 //! The tunnel that showed through the keyed feed grows to the whole frame,
-//! its SkSL source scrolls on the left and the guest becomes a halftone print.
+//! its `SkSL` source scrolls on the left and the guest becomes a halftone print.
 
 use fframes::{Duration, FFramesContext, Frame, Scene, Svgr};
 

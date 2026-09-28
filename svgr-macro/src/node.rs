@@ -47,9 +47,8 @@ impl Node {
     /// Returns `String` if `name` is `Some` and not `NodeName::Block`
     pub fn name_as_string(&self) -> Option<String> {
         match self.name.as_ref() {
-            Some(NodeName::Block(_)) => None,
+            Some(NodeName::Block(_)) | None => None,
             Some(name) => Some(name.to_string()),
-            None => None,
         }
     }
 
@@ -63,11 +62,11 @@ impl Node {
 
     /// Returns `Span` if `name` is `Some`
     pub fn name_span(&self) -> Option<Span> {
-        self.name.as_ref().map(|name| name.span())
+        self.name.as_ref().map(NodeName::span)
     }
 
     pub fn value_span(&self) -> Option<Span> {
-        self.value.as_ref().map(|name| name.span())
+        self.value.as_ref().map(syn::spanned::Spanned::span)
     }
 
     /// Returns `String` if `value` is a `Lit` or `Path` expression
@@ -95,7 +94,7 @@ impl Node {
 /// Type of the node
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NodeType {
-    /// A HTMLElement tag, with optional children and attributes.
+    /// A `HTMLElement` tag, with optional children and attributes.
     /// Potentially selfclosing. Any tag name is valid.
     Element,
 
@@ -165,12 +164,12 @@ impl fmt::Display for NodeName {
                 NodeName::Path(expr) => path_to_string(expr),
                 NodeName::Dash(name) => name
                     .iter()
-                    .map(|ident| ident.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect::<Vec<String>>()
                     .join("-"),
                 NodeName::Colon(name) => name
                     .iter()
-                    .map(|ident| ident.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect::<Vec<String>>()
                     .join(":"),
                 NodeName::Block(_) => String::from("{}"),

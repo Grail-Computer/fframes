@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::Span;
 use nom::branch::alt;
 use nom::character::complete::{digit1, newline, space0};
@@ -65,7 +63,7 @@ fn parse_time_with_hours(input: Span) -> IResult<Span, Time> {
 
     Ok((
         input,
-        Time(hour * 3600000 * minute * 60000 + second * 1000 + millisecond),
+        Time(hour * 3_600_000 * minute * 60000 + second * 1000 + millisecond),
     ))
 }
 
@@ -111,7 +109,7 @@ fn parse_cue(input: Span) -> IResult<Span, VttCue> {
                 other => other,
             },
             note,
-            text: text.deref(),
+            text: &text,
         },
     ))
 }
@@ -140,7 +138,7 @@ pub fn parse(text: Span) -> IResult<Span, Vtt> {
             style: None,
             slugs: slugs
                 .into_iter()
-                .map(|(key, val)| (*key.deref(), *val.deref()))
+                .map(|(key, val)| (*key, *val))
                 .collect::<std::collections::HashMap<_, _>>(),
         },
     ))

@@ -34,7 +34,7 @@ impl RgbaFrame {
             let a = px[3];
             if a != 255 && a != 0 {
                 for c in &mut px[..3] {
-                    *c = ((*c as u32 * 255 + a as u32 / 2) / a as u32).min(255) as u8;
+                    *c = ((u32::from(*c) * 255 + u32::from(a) / 2) / u32::from(a)).min(255) as u8;
                 }
             }
         }

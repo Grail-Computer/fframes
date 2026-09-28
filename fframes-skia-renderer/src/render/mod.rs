@@ -1,4 +1,4 @@
-//! Direct usvgr::Tree to Skia Canvas renderer.
+//! Direct `usvgr::Tree` to Skia Canvas renderer.
 //!
 //! This module bypasses Skia's SVG DOM entirely, walking the usvgr tree
 //! and issuing Skia Canvas draw calls directly. This eliminates the
@@ -685,13 +685,12 @@ fn build_clip_group(
                 if path.visibility() != usvgr::Visibility::Visible {
                     continue;
                 }
-                let fill_type = path
-                    .fill()
-                    .map(|f| match f.rule() {
-                        usvgr::FillRule::NonZero => skia_safe::PathFillType::Winding,
-                        usvgr::FillRule::EvenOdd => skia_safe::PathFillType::EvenOdd,
-                    })
-                    .unwrap_or(skia_safe::PathFillType::Winding);
+                let fill_type =
+                    path.fill()
+                        .map_or(skia_safe::PathFillType::Winding, |f| match f.rule() {
+                            usvgr::FillRule::NonZero => skia_safe::PathFillType::Winding,
+                            usvgr::FillRule::EvenOdd => skia_safe::PathFillType::EvenOdd,
+                        });
 
                 let mut sk_path = cache.convert_path(path);
                 sk_path.set_fill_type(fill_type);
@@ -711,7 +710,7 @@ fn build_clip_group(
                     (None, _) => None,
                 }
             }
-            _ => None,
+            usvgr::Node::Image(_) => None,
         };
 
         result = match (result, contribution) {
@@ -726,7 +725,7 @@ fn build_clip_group(
     result
 }
 
-/// Apply a mask to the current layer content using DstIn blending.
+/// Apply a mask to the current layer content using `DstIn` blending.
 fn apply_mask(mask: &usvgr::Mask, canvas: &Canvas, cache: &mut RenderCache) {
     let mut mask_paint = skia_safe::Paint::default();
     mask_paint.set_blend_mode(skia_safe::BlendMode::DstIn);

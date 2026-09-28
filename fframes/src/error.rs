@@ -2,7 +2,7 @@ use std::{error::Error, fmt};
 
 #[derive(Debug)]
 pub enum FFramesError {
-    /// Your custom error will go here if you return the Err(YourError) from your Video's render_frame.
+    /// Your custom error will go here if you return the Err(YourError) from your Video's `render_frame`.
     UserError(String),
 
     // All the other core fframes errors will go here:

@@ -58,8 +58,8 @@ impl Default for FontQuery<'_> {
             weight: 500,
             size: 16,
             family: "Arial",
-            style: Default::default(),
-            stretch: Default::default(),
+            style: FontStyle::default(),
+            stretch: FontStretch::default(),
         }
     }
 }
@@ -268,8 +268,7 @@ impl WrappedTextStructure {
                 text-anchor={text_anchor}
                 opacity={opacity}
             >
-                {Svgr::from_iter(
-                    self.lines.iter().map(|line| {
+                {self.lines.iter().map(|line| {
                         svgr_macro::svgr! {
                             <tspan
                                 x={svgr_x.clone()}
@@ -280,8 +279,7 @@ impl WrappedTextStructure {
                                 {line.words.join(" ")}
                             </tspan>
                         }
-                    })
-                )}
+                    }).collect::<Svgr>()}
             </text>
         }
     }
@@ -345,8 +343,7 @@ fn calc_text_width(
     font_variant: FontVariant,
 ) -> usize {
     match text {
-        "" => 0,
-        "\n" | "\r" => 0,
+        "" | "\n" | "\r" => 0,
         text => text
             .chars()
             .map(|char| char_width(char, font_face, font_size, font_variant))
@@ -445,11 +442,9 @@ pub(crate) fn text_wrap_impl<
         ..
     } = options;
 
-    let font_face = if let Some(font_face) =
+    let Some(font_face) =
         font_source.resolve_font(font.family, font.weight, font.style, font.stretch)
-    {
-        font_face
-    } else {
+    else {
         crate::log!(
             "ERROR breaking lines: font is not resolved. Make sure that system fonts are not available for break_lines feature in editor."
         );

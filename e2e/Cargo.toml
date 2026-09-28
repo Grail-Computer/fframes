@@ -11,3 +11,6 @@ rayon = "1.5.1"
 [lib]
 name = "e2e_test_video"
 path = "src/lib.rs"
+
+[lints]
+workspace = true

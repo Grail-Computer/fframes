@@ -43,8 +43,8 @@ impl Scene for PixelSingleVideoScene<'_> {
             at video_duration - 0.5 => video_duration, animate 1. => 0., Easing::EaseOut,
         ));
 
-        let scale_factor = image.metadata.height as f64 / 1080.;
-        let scaled_width = image.metadata.width as f64 / scale_factor;
+        let scale_factor = f64::from(image.metadata.height) / 1080.;
+        let scaled_width = f64::from(image.metadata.width) / scale_factor;
         let center_x = (1920.0 - scaled_width) / 2.0;
 
         if image.metadata.height > image.metadata.width {

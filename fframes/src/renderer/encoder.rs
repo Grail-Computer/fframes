@@ -47,11 +47,11 @@ pub(crate) unsafe fn write_header(
         {
             let key = CString::new("movflags").unwrap();
             let value = CString::new("+faststart").unwrap();
-            av_dict_set(&mut opts, key.as_ptr(), value.as_ptr(), 0);
+            av_dict_set(&raw mut opts, key.as_ptr(), value.as_ptr(), 0);
         }
 
-        let status = avformat_write_header(oc, &mut opts);
-        av_dict_free(&mut opts);
+        let status = avformat_write_header(oc, &raw mut opts);
+        av_dict_free(&raw mut opts);
 
         if status < 0 {
             return Err(renderer_error::RenderEncodingError::FFmpegError(
@@ -86,17 +86,17 @@ pub struct EncoderOptions<'a> {
     /// specify the ffmpeg-compatible name of the encoder that should be used. If nothing provided
     /// fallback toe the first available encoder for the specified output format.
     pub preferred_encoder: Option<&'a str>,
-    /// Pixel format used to store encoded frame. By default equals to AVPixelFormat::AV_PIX_FMT_YUV420P
+    /// Pixel format used to store encoded frame. By default equals to `AVPixelFormat::AV_PIX_FMT_YUV420P`
     /// If not supported by the encoder the first supported pixel format will be used (which may
     /// lead to quality of alpha channel loss)
     ///
     /// Ignored for audio streams.
-    /// @default AV_PIX_FMT_YUV420P
+    /// @default `AV_PIX_FMT_YUV420P`
     pub pixel_format: AVPixelFormat,
-    /// Sample format used to store encoded audio frame. By default equals to AvSampleFormat::AV_SAMPLE_FMT_FLTP
+    /// Sample format used to store encoded audio frame. By default equals to `AvSampleFormat::AV_SAMPLE_FMT_FLTP`
     /// Ignored for video streams.
     ///
-    /// @default AV_SAMPLE_FMT_FLTP
+    /// @default `AV_SAMPLE_FMT_FLTP`
     pub sample_format: AVSampleFormat,
     /// Target audio bitrate in bits,
     /// For video streams sometimes may not be needed and set dynamically based on the other codec
@@ -248,11 +248,11 @@ impl Drop for Encoder {
                 }
 
                 if !(*self.oc).metadata.is_null() {
-                    av_dict_free(&mut (*self.oc).metadata);
+                    av_dict_free(&raw mut (*self.oc).metadata);
                 }
 
                 if !(*self.oc).pb.is_null() {
-                    avio_closep(&mut (*self.oc).pb);
+                    avio_closep(&raw mut (*self.oc).pb);
                 }
 
                 avformat_free_context(self.oc);
@@ -290,7 +290,7 @@ impl Encoder {
 
             ffmpeg_action!(
                 avformat_alloc_output_context2(
-                    &mut oc,
+                    &raw mut oc,
                     std::ptr::null_mut(),
                     std::ptr::null_mut(),
                     c_filename.as_ptr(),
@@ -310,7 +310,7 @@ impl Encoder {
             }
 
             ffmpeg_action!(
-                avio_open(&mut (*oc).pb, c_filename.as_ptr(), 2),
+                avio_open(&raw mut (*oc).pb, c_filename.as_ptr(), 2),
                 RenderEncodingError::CantOpenFile(filename.to_owned())
             );
 
@@ -321,9 +321,9 @@ impl Encoder {
             write_header(oc, matches!(output, EncoderOutput::Final { .. }))?;
 
             Ok(Encoder {
-                oc,
                 video_stream,
                 audio_stream,
+                oc,
             })
         }
     }
@@ -455,7 +455,7 @@ impl Encoder {
                     ));
                 }
             };
-            av_packet_free(&mut packet);
+            av_packet_free(&raw mut packet);
 
             result
         }

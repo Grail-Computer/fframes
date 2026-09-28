@@ -52,7 +52,7 @@ impl SpringRuntime {
     /// Not the best, but it looks there is no formula for precise calculation of spring dumping timing.
     /// Must be called in compile time
     pub fn get_duration(&self) -> f32 {
-        let frame_duration = 0.166667; // for 60 fps
+        let frame_duration = 0.166_667; // for 60 fps
 
         let mut elapsed = 0.0;
         let mut not_animating_frames_count = 0u8;
@@ -66,7 +66,7 @@ impl SpringRuntime {
                     break;
                 }
             } else {
-                not_animating_frames_count = 0
+                not_animating_frames_count = 0;
             }
         }
 

@@ -16,6 +16,10 @@ use crate::{node::*, punctuation::*};
 
 type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
 
+// A process-wide counter gives every animation a unique, deterministic
+// identifier for the whole compilation.
+static ANIMATION_COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
 #[derive(Default)]
 pub struct ParserOptions {
     number_of_top_level_nodes: Option<usize>,
@@ -177,12 +181,7 @@ impl Parser<'_> {
                 _ => return Ok(None),
             };
 
-            // A process-wide counter gives every animation a unique, deterministic
-            // identifier for the whole compilation.
-            use std::sync::atomic::{AtomicUsize, Ordering};
-            static ANIMATION_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-            let animation_id = ANIMATION_COUNTER.fetch_add(1, Ordering::SeqCst);
+            let animation_id = ANIMATION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             let mut punctuated = Punctuated::new();
             punctuated.push(PathSegment {
                 ident: Ident::new(&format!("__SVGR_ANIM_{animation_id}"), Span::call_site()),
@@ -242,8 +241,8 @@ impl Parser<'_> {
                 .iter()
                 .map(|_| {
                     syn::Expr::Reference(syn::ExprReference {
-                        and_token: Default::default(),
-                        attrs: Default::default(),
+                        and_token: syn::token::And::default(),
+                        attrs: Vec::default(),
                         mutability: None,
                         expr: Box::new(identifier.clone()),
                     })
@@ -323,10 +322,9 @@ impl Parser<'_> {
             if tag_open_name == &tag_close_name {
                 // if the next token is a matching close tag then there are no child nodes
                 return Ok(false);
-            } else {
-                // if the next token is a closing tag with a different name it's an invalid tree
-                return Err(input.error("close tag has no corresponding open tag"));
             }
+            // if the next token is a closing tag with a different name it's an invalid tree
+            return Err(input.error("close tag has no corresponding open tag"));
         }
 
         Ok(true)
@@ -350,14 +348,14 @@ impl Parser<'_> {
             attribute_tokens.extend(Some(next));
         };
 
-        let attributes = if !attribute_tokens.is_empty() {
+        let attributes = if attribute_tokens.is_empty() {
+            vec![]
+        } else {
             // Create a new parse stream from the collected tokens
             syn::parse::Parser::parse2(
                 |input: ParseStream| self.attributes(input, &tag_name),
                 attribute_tokens,
             )?
-        } else {
-            vec![]
         };
 
         Ok((tag_name, attributes, self_closing))

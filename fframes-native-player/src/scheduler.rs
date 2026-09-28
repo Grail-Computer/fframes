@@ -56,7 +56,9 @@ impl Scheduler {
 
     fn lock(&self) -> MutexGuard<'_, State> {
         // A panicking worker must not take the player down with a poisoned lock.
-        self.state.lock().unwrap_or_else(|e| e.into_inner())
+        self.state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     pub(crate) fn frame_of(&self, position: u64, looping: bool) -> usize {
@@ -133,7 +135,7 @@ impl Scheduler {
             state = self
                 .workers_wakeup
                 .wait(state)
-                .unwrap_or_else(|e| e.into_inner());
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
         }
     }
 

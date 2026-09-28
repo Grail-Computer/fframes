@@ -97,10 +97,10 @@ pub(crate) fn parse_cue_settings(input: Span) -> IResult<Span, VttCueSettings> {
         input,
         VttCueSettings {
             vertical,
-            align,
             line,
             position,
             size,
+            align,
         },
     ))
 }

@@ -319,8 +319,7 @@ jobs:
 
       - name: Clippy
         run: |
-          cargo clippy $PACKAGES --tests -- -D warnings -A clippy::option-map-unit-fn \
-            -A clippy::module_inception -A clippy::single-match -A clippy::single-range-in-vec-init
+          cargo clippy $PACKAGES --tests -- -D warnings
 
       - name: Unit tests
         run: cargo test -p fframes -p fframes-media -p webvtt-parser -p fframes-media-dir-macro

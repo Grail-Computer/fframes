@@ -146,9 +146,7 @@ impl VttCueSettings {
 impl Display for VttCueSettings {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         fn format_opt<T: Display>(name: &str, option: Option<T>) -> String {
-            option
-                .map(|value| format!(" {name}:{value}"))
-                .unwrap_or_else(|| "".to_owned())
+            option.map_or_else(String::new, |value| format!(" {name}:{value}"))
         }
 
         write!(
@@ -170,13 +168,13 @@ pub struct VttCue<'a> {
     pub end: Time,
     /// The identifier is a name that identifies the cue. It can be used to reference the cue from a script. It must not contain a newline and cannot contain the string "-->". It must end with a single newline.
     ///
-    /// Ref: https://developer.mozilla.org/en-US/docs/Web/API/WebVTT_API#cue_identifier
+    /// Ref: <https://developer.mozilla.org/en-US/docs/Web/API/WebVTT_API#cue_identifier>
     pub name: Option<&'a str>,
     pub text: &'a str,
     pub note: Option<&'a str>,
     /// Optional cue settings that belongs to this particular group. If value is Some(CueSettings) it means that at least one settings passed.
     ///
-    /// Ref: https://developer.mozilla.org/en-US/docs/Web/API/WebVTT_API#cue_settings
+    /// Ref: <https://developer.mozilla.org/en-US/docs/Web/API/WebVTT_API#cue_settings>
     pub cue_settings: Option<VttCueSettings>,
 }
 
@@ -186,7 +184,7 @@ impl<'a> From<VttCue<'a>> for &'a str {
     }
 }
 
-/// Totally same as VttCue but owns the data.
+/// Totally same as `VttCue` but owns the data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OwnedVttCue {
     pub start: Time,
@@ -221,9 +219,9 @@ impl VttCue<'_> {
         OwnedVttCue {
             start: self.start,
             end: self.end,
-            name: self.name.map(|name| name.to_owned()),
+            name: self.name.map(std::borrow::ToOwned::to_owned),
             text: self.text.to_owned(),
-            note: self.note.map(|note| note.to_owned()),
+            note: self.note.map(std::borrow::ToOwned::to_owned),
             cue_settings: self.cue_settings,
         }
     }
@@ -236,18 +234,15 @@ impl Display for VttCue<'_> {
             "{}{}{} --> {}{}\n{}\n",
             self.note
                 .as_ref()
-                .map(|comment| format!("NOTE {comment}\n"))
-                .unwrap_or_else(|| "".to_owned()),
+                .map_or_else(String::new, |comment| format!("NOTE {comment}\n")),
             self.name
                 .as_ref()
-                .map(|comment| format!("NOTE {comment}\n"))
-                .unwrap_or_else(|| "".to_owned()),
+                .map_or_else(String::new, |comment| format!("NOTE {comment}\n")),
             self.start,
             self.end,
             self.cue_settings
                 .as_ref()
-                .map(|setting| format!("{setting}"))
-                .unwrap_or_else(|| "".to_owned()),
+                .map_or_else(String::new, |setting| format!("{setting}")),
             self.text
         )
     }
@@ -375,8 +370,8 @@ impl<'a> Vtt<'a> {
                 .iter()
                 .map(|(key, value)| (key.to_string(), value.to_string()))
                 .collect(),
-            style: self.style.map(|style| style.to_owned()),
-            cues: self.cues.iter().map(|cue| cue.to_owned()).collect(),
+            style: self.style.map(std::borrow::ToOwned::to_owned),
+            cues: self.cues.iter().map(VttCue::to_owned).collect(),
         }
     }
 }
@@ -437,7 +432,7 @@ mod tests {
         let expected_vtt = Vtt {
             slugs: [("Kind", "captions"), ("Language", "en")]
                 .iter()
-                .cloned()
+                .copied()
                 .collect::<HashMap<&str, &str>>(),
             style: None,
             cues: vec![
@@ -633,7 +628,7 @@ mod tests {
         let content = include_str!("../tests/simple.vtt");
 
         let vtt = Vtt::parse(content).unwrap();
-        assert_eq!(format!("{vtt}"), content)
+        assert_eq!(format!("{vtt}"), content);
     }
 
     #[test]

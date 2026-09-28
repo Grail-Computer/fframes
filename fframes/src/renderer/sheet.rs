@@ -2,6 +2,7 @@
 //! show a movement in a single picture.
 use super::{FFramesRendererError, FFramesRendererResult, RgbaFrame};
 use crate::usvgr;
+use std::fmt::Write as _;
 use svgr::tiny_skia;
 
 /// A frame of a contact sheet with the label drawn under it.
@@ -13,10 +14,10 @@ pub struct SheetCell {
 fn to_pixmap(frame: &RgbaFrame) -> FFramesRendererResult<tiny_skia::Pixmap> {
     let mut data = frame.pixels.clone();
     for px in data.as_chunks_mut::<4>().0 {
-        let a = px[3] as u32;
+        let a = u32::from(px[3]);
         if a != 255 {
             for c in &mut px[..3] {
-                *c = ((*c as u32 * a + 127) / 255) as u8;
+                *c = ((u32::from(*c) * a + 127) / 255) as u8;
             }
         }
     }
@@ -87,13 +88,14 @@ pub fn contact_sheet(
             None,
         );
 
-        labels.push_str(&format!(
+        let _ = write!(
+            labels,
             r##"<text x="{}" y="{}" font-size="{}" font-family="{family}" fill="#f4f4f5">{}</text>"##,
             x + 6,
             y + cell_h + label_h * 3 / 4,
             label_h * 3 / 5,
             escape_xml(&cell.label),
-        ));
+        );
     }
 
     let svg = format!(
@@ -141,7 +143,7 @@ pub fn onion_skin(frames: &[RgbaFrame]) -> FFramesRendererResult<RgbaFrame> {
         let value: f32 = frames
             .iter()
             .zip(&weights)
-            .map(|(frame, w)| frame.pixels[i] as f32 * w)
+            .map(|(frame, w)| f32::from(frame.pixels[i]) * w)
             .sum();
         *px = (value / total).round().clamp(0., 255.) as u8;
     }

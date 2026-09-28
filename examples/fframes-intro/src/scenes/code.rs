@@ -98,7 +98,7 @@ impl Scene for CodeScene {
             let y = CODE_Y + li as f32 * LINE_H;
             let mut col = 0usize;
             let mut spans = Vec::new();
-            for (text, color) in line.iter() {
+            for (text, color) in *line {
                 let n = text.chars().count();
                 let take = n.min(left);
                 if take > 0 {

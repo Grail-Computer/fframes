@@ -86,7 +86,7 @@ pub fn include_media_dir(input: TokenStream) -> TokenStream {
         ident,
         variant,
         ..
-    } in media_files.iter()
+    } in &media_files
     {
         match variant {
             MediaVariant::Audio => {
@@ -98,7 +98,7 @@ pub fn include_media_dir(input: TokenStream) -> TokenStream {
             MediaVariant::Font => {
                 font_identifiers.push(quote! { ( &self.#ident, #filename )});
             }
-            _ => {}
+            MediaVariant::Subtitles => {}
         }
     }
 
@@ -316,7 +316,6 @@ impl MediaFile {
             }
             MediaVariant::Image => {
                 let file_name = self.path.file_name().and_then(|f| f.to_str()).unwrap();
-                print!("self.path: {:?}", self.path);
                 let file_bytes = std::fs::read(&self.path).unwrap();
 
                 let image_data = &fframes_media::decode_image(file_name, &file_bytes).unwrap();
@@ -427,8 +426,7 @@ fn create_image_identifier_for_platform_wasm(
 
     let mime_type = match extension {
         Some("png") => "image/png",
-        Some("jpg") => "image/jpeg",
-        Some("jpeg") => "image/jpeg",
+        Some("jpg" | "jpeg") => "image/jpeg",
         _ => panic!("File {file_name} is not a valid image file"),
     };
 
@@ -524,20 +522,17 @@ fn read_file_bytes_as_tokens(path: &Path) -> proc_macro2::TokenStream {
         .canonicalize()
         .unwrap_or_else(|e| panic!("failed to resolve \"{}\": {}", path.display(), e));
 
-    match abs.to_str() {
-        Some(abs) => quote!(include_bytes!(#abs)),
-        None => {
-            let contents = read_file(path);
-            let literal = Literal::byte_string(&contents);
-            quote!(#literal)
-        }
+    if let Some(abs) = abs.to_str() {
+        quote!(include_bytes!(#abs))
+    } else {
+        let contents = read_file(path);
+        let literal = Literal::byte_string(&contents);
+        quote!(#literal)
     }
 }
 
 fn read_dir(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
-    if !dir.is_dir() {
-        panic!("\"{}\" is not a directory", dir.display());
-    }
+    assert!(dir.is_dir(), "\"{}\" is not a directory", dir.display());
 
     track_path(dir);
 

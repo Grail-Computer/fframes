@@ -237,7 +237,7 @@ pub fn inlined_tree_complex_path() {
            </g>
          </svg>
         ),
-    )
+    );
 }
 
 #[test]
@@ -275,7 +275,7 @@ pub fn nested_trees() {
            </g>
          </svg>
         ),
-    )
+    );
 }
 
 #[test]
@@ -290,7 +290,7 @@ pub fn svg_use() {
             <rect id="frame" x="1" y="1" width="198" height="198" fill="none" stroke="rgb(0, 0, 0)" />
         </svg>
         ),
-    )
+    );
 }
 
 #[test]
@@ -305,7 +305,7 @@ pub fn svg_use_recursive() {
              <rect id="frame" x="1" y="1" width="198" height="198" fill="none" stroke="rgb(0, 0, 0)"/>
          </svg>
         ),
-    )
+    );
 }
 
 #[test]
@@ -320,7 +320,7 @@ pub fn svg_use_child_recursion() {
             <use href="#g1" id="use1"/>
            </svg>
         ),
-    )
+    );
 }
 
 #[test]

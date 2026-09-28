@@ -243,7 +243,7 @@ fn inspect_group(group: &usvgr::Group, width: f32, height: f32, out: &mut Vec<Di
                 {
                     check_transforms(group, out);
                 } else {
-                    inspect_group(group, width, height, out)
+                    inspect_group(group, width, height, out);
                 }
             }
             usvgr::Node::Text(text) => {
@@ -259,7 +259,7 @@ fn inspect_group(group: &usvgr::Group, width: f32, height: f32, out: &mut Vec<Di
                 let content = text
                     .chunks()
                     .iter()
-                    .map(|chunk| chunk.text())
+                    .map(usvgr::TextChunk::text)
                     .collect::<Vec<_>>()
                     .join(" ");
                 // A pixel of tolerance for anti-aliasing and rounding at the edges.

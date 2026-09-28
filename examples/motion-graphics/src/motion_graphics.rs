@@ -87,9 +87,9 @@ impl fframes::Video for MotionGraphicsVideo<'_> {
                         dominant-baseline="central"
                         letter-spacing="20"
                         transform={Transform {
-                            translate_x: 960.0 * (1.0 - line1_scale as f64),
-                            translate_y: line1_y as f64 * (1.0 - line1_scale as f64),
-                            scale: fframes::Scale { x: line1_scale as f64, y: line1_scale as f64 },
+                            translate_x: 960.0 * (1.0 - f64::from(line1_scale)),
+                            translate_y: f64::from(line1_y) * (1.0 - f64::from(line1_scale)),
+                            scale: fframes::Scale { x: f64::from(line1_scale), y: f64::from(line1_scale) },
                             ..Default::default()
                         }}
                     >

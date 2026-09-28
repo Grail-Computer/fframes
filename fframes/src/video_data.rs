@@ -348,16 +348,16 @@ impl VideoDecodersWorker {
             }
 
             let has_frame = decoder.decode_up_to(offset)?;
-            match has_frame {
-                true => Ok(Some(decoder.get_raw_frame())),
-                false if options.looping => {
-                    decoder.seek_to_offset(0)?;
-                    let has_first_frame = decoder.decode_up_to(0)?;
+            if has_frame {
+                Ok(Some(decoder.get_raw_frame()))
+            } else if options.looping {
+                decoder.seek_to_offset(0)?;
+                let has_first_frame = decoder.decode_up_to(0)?;
 
-                    decoder.current_loop += 1;
-                    Ok(has_first_frame.then_some(decoder.get_raw_frame()))
-                }
-                false => Ok(None),
+                decoder.current_loop += 1;
+                Ok(has_first_frame.then_some(decoder.get_raw_frame()))
+            } else {
+                Ok(None)
             }
         }
     }

@@ -247,9 +247,7 @@ impl Bench<'_> {
             ..Default::default()
         };
 
-        if !self.args.no_stages {
-            self.stages(&spec, video, media, &mut report);
-        } else {
+        if self.args.no_stages {
             let scenes = video.define_scenes();
             let runtime = FFramesRendererRuntime::new(
                 TimeBase {
@@ -262,6 +260,8 @@ impl Bench<'_> {
             )
             .expect("runtime");
             report.total_frames = runtime.timeline.duration_in_frames;
+        } else {
+            self.stages(&spec, video, media, &mut report);
         }
 
         for backend in &self.args.e2e {
@@ -577,7 +577,7 @@ fn print_summary(reports: &[Report], baseline: Option<&[Report]>) {
     println!("\n{:-<110}", "");
     print!("{:<28}", "example (ms/frame | fps)");
     for k in stage_keys {
-        print!("{:>14}", k);
+        print!("{k:>14}");
     }
     for k in &e2e_keys {
         print!("{:>16}", format!("e2e {k}"));

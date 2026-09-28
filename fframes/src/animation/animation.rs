@@ -48,10 +48,10 @@ impl AnimationRuntime {
 impl AnimationRuntime {
     pub fn get_duration(&self) -> f32 {
         match *self {
-            AnimationRuntime::Linear(duration) => duration,
-            AnimationRuntime::SpringRuntime(_spring, duration) => duration,
-            AnimationRuntime::CubicBezier(_, duration) => duration,
-            AnimationRuntime::Static(duration) => duration,
+            AnimationRuntime::Linear(duration)
+            | AnimationRuntime::SpringRuntime(_, duration)
+            | AnimationRuntime::CubicBezier(_, duration)
+            | AnimationRuntime::Static(duration) => duration,
         }
     }
 
@@ -71,7 +71,7 @@ impl AnimationRuntime {
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Easing {
     /// Specifies an animation with the same speed from start to end.
-    /// calculates as Linear(duration): f(current_time) = current_time / duration
+    /// calculates as Linear(duration): `f(current_time)` = `current_time` / duration
     Linear,
     /// CSS-like ease-in easing function.
     /// Specifies an animation with a slow start.
@@ -122,7 +122,7 @@ impl Animatable for f64 {
     fn apply_progress(&self, to: &Self, progress: f32) -> Self {
         let animation_range = to - self;
 
-        self + animation_range * progress as f64
+        self + animation_range * f64::from(progress)
     }
 }
 

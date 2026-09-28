@@ -1,19 +1,23 @@
 use beta_example::{BetaExamples, BetaVideo};
 use fframes::{
     CombinedMediaProvider, EncoderOptions, MediaDirectory, MediaProvider, RenderOptions,
-    StaticMediaProvider, cli, cpu::CpuRenderingBackend, lazy_static::lazy_static,
+    StaticMediaProvider, cli, cpu::CpuRenderingBackend,
 };
 use hello_world_example::{HelloWorldMedia, HelloWorldVideo};
 use marketing_example::{MarketingMedia, MarketingVideo};
 use podcast_example::PodcastVideo;
-use std::{path::Path, process::ExitCode, sync::Arc};
+use std::{
+    path::Path,
+    process::ExitCode,
+    sync::{Arc, LazyLock},
+};
 use tiktok_example::{GooseMedia, GooseVideo};
 
-lazy_static! {
-    static ref TIKTOK_MEDIA: GooseMedia = GooseMedia::prepare().unwrap();
-    static ref MARKETING_MEDIA: MarketingMedia = MarketingMedia::prepare().unwrap();
-    static ref HELLO_WORLD_MEDIA: HelloWorldMedia = HelloWorldMedia::prepare().unwrap();
-}
+static TIKTOK_MEDIA: LazyLock<GooseMedia> = LazyLock::new(|| GooseMedia::prepare().unwrap());
+static MARKETING_MEDIA: LazyLock<MarketingMedia> =
+    LazyLock::new(|| MarketingMedia::prepare().unwrap());
+static HELLO_WORLD_MEDIA: LazyLock<HelloWorldMedia> =
+    LazyLock::new(|| HelloWorldMedia::prepare().unwrap());
 
 fn main() -> ExitCode {
     let media_folder = MediaDirectory::read_folder(Path::new("./media")).unwrap();

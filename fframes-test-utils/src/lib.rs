@@ -53,10 +53,7 @@ pub fn assert_compile_time_svgr_eq_runtime(name: &str, svgr: Svgr) {
         },
     );
 
-    if !existing_file {
-        std::fs::create_dir_all(snapshot_path.parent().unwrap()).unwrap();
-        std::fs::write(snapshot_path, prefixed_snapshot).unwrap();
-    } else {
+    if existing_file {
         let is_eq = snapshot == read_snapshot(snapshot_path).unwrap();
 
         if !is_eq {
@@ -82,5 +79,8 @@ pub fn assert_compile_time_svgr_eq_runtime(name: &str, svgr: Svgr) {
                 )
             }
         }
+    } else {
+        std::fs::create_dir_all(snapshot_path.parent().unwrap()).unwrap();
+        std::fs::write(snapshot_path, prefixed_snapshot).unwrap();
     }
 }

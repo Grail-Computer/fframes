@@ -128,7 +128,7 @@ pub fn play<'a, 'media: 'a, TVideo: Video + Sync>(
     let notify_frame_ready = || {
         let _ = proxy
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             .send_event(FrameReady);
     };
 
@@ -161,7 +161,7 @@ pub fn play<'a, 'media: 'a, TVideo: Video + Sync>(
                     // next decode, so they must not be shared between threads.
                     VideoDecodersWorker::new(options.prefetch_frames.max(1) * 2),
                     &notify_frame_ready,
-                )
+                );
             });
         }
 

@@ -138,8 +138,7 @@ fn hud(frame: &Frame, b: f32) -> Svgr<'static> {
         .iter()
         .rev()
         .find(|(start, _)| b >= *start)
-        .map(|(_, name)| *name)
-        .unwrap_or("");
+        .map_or("", |(_, name)| *name);
     let bar = if b < 0.0 {
         0
     } else {

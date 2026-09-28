@@ -1,6 +1,7 @@
 use crate::node::{Node, NodeType};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
+use std::fmt::Write as _;
 
 #[allow(dead_code)]
 pub(crate) fn prepare_svg_nodes_for_format_statement(
@@ -14,7 +15,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
         match node.node_type {
             NodeType::Element => {
                 let name = node.name_as_string().unwrap();
-                out.push_str(&format!("<{name}"));
+                let _ = write!(out, "<{name}");
 
                 // attributes
                 let (svg_string, attribute_values) =
@@ -30,10 +31,10 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                 out.push_str(&svg_string);
                 values.extend(children_values);
 
-                out.push_str(&format!("</{name}>"));
+                let _ = write!(out, "</{name}>");
             }
             NodeType::Attribute => {
-                out.push_str(&format!(" {}", node.name_as_string().unwrap()));
+                let _ = write!(out, " {}", node.name_as_string().unwrap());
                 if let Some(node_value) = node.value {
                     out.push_str(r#"="{}""#);
                     values.push(node_value.into_token_stream());
@@ -50,7 +51,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                     #fframes_crate_ident::Svgr::from(#value)
                 };
 
-                values.push(quote)
+                values.push(quote);
             }
         }
     }

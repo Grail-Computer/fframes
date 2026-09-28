@@ -21,3 +21,6 @@ simplecss = "0.2"
 
 [features]
 compile-time-svgtree = []
+
+[lints]
+workspace = true

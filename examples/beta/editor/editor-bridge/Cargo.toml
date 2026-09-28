@@ -17,7 +17,5 @@ tiktok-example = { path = "../../../tiktok", default-features = false }
 hello-world-example = { path = "../../../hello-world", default-features = false }
 podcast-example = { path = "../../../podcast", default-features = false }
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-	'cfg(wasm_bindgen_unstable_test_coverage)',
-] }
+[lints]
+workspace = true

@@ -66,15 +66,15 @@ impl Scene for FibonacciSpiralGallery<'_> {
             opacity = phase_progress;
 
             Transform {
-                translate_x: center_x as f64,
-                translate_y: center_y as f64,
-                scale: (0.7 + 0.3 * phase_progress as f64).into(),
+                translate_x: f64::from(center_x),
+                translate_y: f64::from(center_y),
+                scale: (0.7 + 0.3 * f64::from(phase_progress)).into(),
                 ..Default::default()
             }
         } else if current_time < (self.fade_in_duration + self.center_duration) {
             Transform {
-                translate_x: center_x as f64,
-                translate_y: center_y as f64,
+                translate_x: f64::from(center_x),
+                translate_y: f64::from(center_y),
                 scale: 1.0.into(),
                 ..Default::default()
             }
@@ -108,10 +108,11 @@ impl Scene for FibonacciSpiralGallery<'_> {
             let spiral_y = center_y + radius * theta.sin();
 
             Transform {
-                translate_x: spiral_x as f64,
-                translate_y: spiral_y as f64,
-                scale: (1.0 - 0.9 * phase_progress as f64).into(),
-                rotate: (self.spiral_direction as f64 * phase_progress as f64 * 25.0).into(),
+                translate_x: f64::from(spiral_x),
+                translate_y: f64::from(spiral_y),
+                scale: (1.0 - 0.9 * f64::from(phase_progress)).into(),
+                rotate: (f64::from(self.spiral_direction) * f64::from(phase_progress) * 25.0)
+                    .into(),
                 ..Default::default()
             }
         };

@@ -60,7 +60,7 @@ impl Default for PlayerOptions<'_, '_> {
             audio: true,
             render_threads: None,
             prefetch_frames: 12,
-            audio_mix: Default::default(),
+            audio_mix: fframes::AudioMixOptions::default(),
         }
     }
 }

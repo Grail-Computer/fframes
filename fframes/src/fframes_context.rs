@@ -1,7 +1,6 @@
 use crate::media::{ImageData, Subtitles};
 use crate::{AudioData, FontSource, Frame, MediaProvider, ResolvedScenesTimeline, Svgr};
 use fframes_media::VideoMedia;
-use std::iter::FromIterator;
 use std::sync::atomic::AtomicBool;
 
 #[derive(Clone, Debug)]
@@ -47,7 +46,7 @@ pub struct FFramesContext<'a, 'media: 'a> {
     pub current_video_size: VideoSize,
     /// Total duration of the video in frames.
     pub duration_in_frames: usize,
-    /// The execution mode: Editor, EditorTimelinePreview, or Renderer.
+    /// The execution mode: Editor, `EditorTimelinePreview`, or Renderer.
     pub mode: FFramesMode,
     /// Resolved scenes timeline if provided by the Video implementation
     pub scenes: Option<&'a ResolvedScenesTimeline<'a>>,
@@ -110,17 +109,16 @@ impl<'a, 'media: 'a> FFramesContext<'a, 'media> {
 
     pub fn render_scenes(&self, global_frame: &Frame) -> Svgr<'a> {
         if let Some(scenes) = self.scenes.as_ref() {
-            Svgr::from_iter(
-                scenes
-                    .iter()
-                    .filter(|&(range, _, _scene)| range.contains(&global_frame.index))
-                    .map(|(range, _, scene)| {
-                        scene.render_frame(
-                            Frame::clone_with_scene_offset(global_frame, range.start),
-                            self,
-                        )
-                    }),
-            )
+            scenes
+                .iter()
+                .filter(|&(range, _, _scene)| range.contains(&global_frame.index))
+                .map(|(range, _, scene)| {
+                    scene.render_frame(
+                        Frame::clone_with_scene_offset(global_frame, range.start),
+                        self,
+                    )
+                })
+                .collect::<Svgr>()
         } else {
             Svgr::default()
         }
@@ -131,8 +129,8 @@ impl<'a, 'media: 'a> FFramesContext<'a, 'media> {
         let scenes = self.scenes.as_ref()?;
         scenes.iter().find_map(|(_, info, boxed_scene)| {
             #[allow(clippy::ptr_eq)]
-            let pointers_equal =
-                *boxed_scene as *const dyn crate::Scene as *const T == scene as *const T;
+            let pointers_equal = std::ptr::from_ref::<dyn crate::Scene>(*boxed_scene).cast::<T>()
+                == std::ptr::from_ref::<T>(scene);
 
             pointers_equal.then_some(info)
         })

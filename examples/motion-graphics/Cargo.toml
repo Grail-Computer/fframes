@@ -31,3 +31,6 @@ required-features = ["renderer"]
 name = "install_scene"
 path = "src/bin/install_scene.rs"
 required-features = ["renderer"]
+
+[lints]
+workspace = true

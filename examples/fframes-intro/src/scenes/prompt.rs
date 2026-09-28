@@ -34,7 +34,7 @@ impl Scene for PromptScene {
         // caret blinks once typing is done
         let caret_on = !done || (t * 3.0).fract() < 0.55;
         // two lines: the first sentence, then "make it stunning."
-        let split = PROMPT.find(". ").map(|i| i + 2).unwrap_or(chars);
+        let split = PROMPT.find(". ").map_or(chars, |i| i + 2);
         let line1: String = shown.chars().take(split).collect();
         let line2: String = shown.chars().skip(split).collect();
         let adv = 64.0 * 0.6;

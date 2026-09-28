@@ -127,9 +127,9 @@ fn render_direct_over_white(tree: &usvgr::Tree, width: i32, height: i32, scale: 
     let mut pixels = read_pixels(&mut surface, &info, width, height);
     for px in pixels.chunks_mut(4) {
         // Premultiplied source over opaque white.
-        let a = px[3] as u32;
+        let a = u32::from(px[3]);
         for c in &mut px[..3] {
-            *c = (*c as u32 + 255 - a).min(255) as u8;
+            *c = (u32::from(*c) + 255 - a).min(255) as u8;
         }
         px[3] = 255;
     }
@@ -162,9 +162,9 @@ fn load_ground_truth(path: &Path) -> Option<(Vec<u8>, i32, i32)> {
     let rgba = match frame.color_type {
         png::ColorType::Rgba => {
             for px in buf.chunks_mut(4) {
-                let a = px[3] as u32;
+                let a = u32::from(px[3]);
                 for c in &mut px[..3] {
-                    *c = ((*c as u32 * a + 255 * (255 - a)) / 255) as u8;
+                    *c = ((u32::from(*c) * a + 255 * (255 - a)) / 255) as u8;
                 }
                 px[3] = 255;
             }
@@ -177,7 +177,7 @@ fn load_ground_truth(path: &Path) -> Option<(Vec<u8>, i32, i32)> {
         png::ColorType::GrayscaleAlpha => buf
             .chunks(2)
             .flat_map(|px| {
-                let (g, a) = (px[0] as u32, px[1] as u32);
+                let (g, a) = (u32::from(px[0]), u32::from(px[1]));
                 let c = ((g * a + 255 * (255 - a)) / 255) as u8;
                 [c, c, c, 255]
             })
@@ -331,7 +331,7 @@ fn svgr_corpus_compat() {
     if !improved.is_empty() {
         let mut by_dir: HashMap<String, usize> = HashMap::new();
         for rel in &improved {
-            let dir = rel.rsplit_once('/').map(|(d, _)| d).unwrap_or(rel);
+            let dir = rel.rsplit_once('/').map_or(rel.as_str(), |(d, _)| d);
             *by_dir.entry(dir.to_string()).or_default() += 1;
         }
         let mut by_dir: Vec<_> = by_dir.into_iter().collect();

@@ -38,10 +38,10 @@ fn e2e_rendering() {
             .expect("failed to create frames results directory");
     }
 
-    if !frames_diff_dir.exists() {
+    if frames_diff_dir.exists() {
+        std::fs::remove_dir_all(&frames_diff_dir).expect("failed to remove frames diff directory");
         std::fs::create_dir(&frames_diff_dir).expect("failed to create frames results directory");
     } else {
-        std::fs::remove_dir_all(&frames_diff_dir).expect("failed to remove frames diff directory");
         std::fs::create_dir(&frames_diff_dir).expect("failed to create frames results directory");
     }
 
@@ -87,13 +87,12 @@ fn e2e_rendering() {
                 .output()
                 .expect("failed to get a diff");
 
-            if diff_result.status.success() { 0 } else { 1 }
+            u32::from(!diff_result.status.success())
         })
         .sum::<u32>();
 
-    if failed_count > 0 {
-        panic!(
-            "{failed_count} frames are visually different, check frames/diff folder for details"
-        );
-    }
+    assert_eq!(
+        failed_count, 0,
+        "{failed_count} frames are visually different, check frames/diff folder for details"
+    );
 }

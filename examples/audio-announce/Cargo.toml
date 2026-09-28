@@ -29,3 +29,6 @@ doctest = false
 name = "audio_announce_example_bin"
 path = "src/main.rs"
 required-features = ["renderer"]
+
+[lints]
+workspace = true

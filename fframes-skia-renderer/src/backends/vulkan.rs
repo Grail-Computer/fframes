@@ -37,11 +37,12 @@ impl SkiaVulkanCtx {
             })?;
 
             let instance: Instance = {
-                let api_version = vulkan_version(&entry)?
-                    .map(|(major, minor, patch)| {
+                let api_version = vulkan_version(&entry)?.map_or_else(
+                    || vk::make_api_version(0, 1, 1, 0),
+                    |(major, minor, patch)| {
                         vk::make_api_version(0, major as u32, minor as u32, patch as u32)
-                    })
-                    .unwrap_or_else(|| vk::make_api_version(0, 1, 1, 0));
+                    },
+                );
 
                 let app_name = CString::new("fframes_skia_renderer").map_err(|e| {
                     FFramesRendererError::Skia(format!("Failed to create CString: {e}"))

@@ -3,9 +3,9 @@
 
 #[inline(always)]
 pub fn get_rgb(pixmap: &[u8], i: usize) -> (i32, i32, i32) {
-    let r = pixmap[4 * i] as i32;
-    let g = pixmap[4 * i + 1] as i32;
-    let b = pixmap[4 * i + 2] as i32;
+    let r = i32::from(pixmap[4 * i]);
+    let g = i32::from(pixmap[4 * i + 1]);
+    let b = i32::from(pixmap[4 * i + 2]);
 
     (r, g, b)
 }
@@ -189,11 +189,11 @@ pub unsafe fn fill_yuv420_from_rgba_pixmap_accelerated(
             dst_y = inout(reg) y_pixels_destination => _,
             dst_cb = inout(reg) cb_pixels_destination => _,
             dst_cr = inout(reg) cr_pixels_destination => _,
-            width = in(reg) width as i64,
-            height = in(reg) height as i64,
-            y_pad = in(reg) (y_linesize - width) as i64,
-            cb_pad = in(reg) (cb_linesize - (width / 2)) as i64,
-            cr_pad = in(reg) (cr_linesize - (width / 2)) as i64,
+            width = in(reg) i64::from(width),
+            height = in(reg) i64::from(height),
+            y_pad = in(reg) i64::from(y_linesize - width),
+            cb_pad = in(reg) i64::from(cb_linesize - (width / 2)),
+            cr_pad = in(reg) i64::from(cr_linesize - (width / 2)),
 
             out("x1") _, out("w4") _, out("x5") _, out("w6") _, out("w7") _, out("x8") _,
             out("w9") _, out("w10") _, out("w11") _, out("w12") _,

@@ -1,4 +1,4 @@
-//! Compatibility tests for the direct usvgr::Tree -> Skia Canvas renderer.
+//! Compatibility tests for the direct `usvgr::Tree` -> Skia Canvas renderer.
 //!
 //! The direct renderer replaces the old `tree.to_string()` + `svg::Dom` path,
 //! so for every SVG feature that Skia's SVG DOM supports we render both ways
@@ -100,7 +100,7 @@ fn assert_similar(name: &str, direct: &[u8], reference: &[u8]) {
         let mut max_chan = 0u8;
         for c in 0..4 {
             let diff = d[c].abs_diff(r[c]);
-            total_diff += diff as u64;
+            total_diff += u64::from(diff);
             max_chan = max_chan.max(diff);
         }
         if max_chan > 40 {
@@ -109,7 +109,7 @@ fn assert_similar(name: &str, direct: &[u8], reference: &[u8]) {
     }
 
     let mean = total_diff as f64 / direct.len() as f64;
-    let bad_frac = bad_pixels as f64 / (W * H) as f64;
+    let bad_frac = bad_pixels as f64 / f64::from(W * H);
 
     if mean > 2.0 || bad_frac > 0.012 {
         dump_ppm(name, "direct", direct);
@@ -673,13 +673,13 @@ fn raster_image_scales_and_clips() {
     images.insert("checker".to_string(), checker_image("checker"));
 
     let tree = parse_with_images(
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"
              xmlns:xlink="http://www.w3.org/1999/xlink">
             <image xlink:href="checker" x="0" y="0" width="100" height="100"
                    image-rendering="optimizeSpeed" preserveAspectRatio="none"/>
             <image xlink:href="checker" x="100" y="100" width="100" height="50"
                    image-rendering="optimizeSpeed" preserveAspectRatio="xMidYMid slice"/>
-        </svg>"##,
+        </svg>"#,
         &images,
     );
     let direct = render_direct(&tree);
@@ -733,10 +733,10 @@ fn nested_svg_image_scales_to_viewport() {
     };
     let fontdb = usvgr::fontdb::Database::new();
     let tree = usvgr::Tree::from_str(
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"
              xmlns:xlink="http://www.w3.org/1999/xlink">
             <image xlink:href="child" x="50" y="50" width="100" height="100"/>
-        </svg>"##,
+        </svg>"#,
         &opt,
         &fontdb,
     )

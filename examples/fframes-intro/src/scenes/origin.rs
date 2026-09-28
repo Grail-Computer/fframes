@@ -42,8 +42,8 @@ struct History {
 }
 
 static HISTORY: LazyLock<History> = LazyLock::new(|| {
-    let first = COMMITS.first().map(|c| c.date).unwrap_or("2021-09-19");
-    let last = COMMITS.last().map(|c| c.date).unwrap_or(first);
+    let first = COMMITS.first().map_or("2021-09-19", |c| c.date);
+    let last = COMMITS.last().map_or(first, |c| c.date);
     History {
         count: COMMITS.len(),
         days: day_number(last) - day_number(first),
@@ -223,7 +223,7 @@ fn history(lb: f32) -> Svgr<'static> {
             let dist = ((y - center_y) / 480.0).abs();
             let o = (1.0 - dist).clamp(0.0, 1.0).powf(1.5);
             let is_current = i as usize == current;
-            let msg: String = c.message.chars().filter(|ch| ch.is_ascii()).take(48).collect();
+            let msg: String = c.message.chars().filter(char::is_ascii).take(48).collect();
             let text_color = if is_current { BONE } else { "#8f8a82" };
             fframes::svgr!(
                 <g opacity={o}>

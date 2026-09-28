@@ -10,10 +10,10 @@ static NEXT_SHADER_ID: AtomicU64 = AtomicU64::new(1);
 /// The language the shader source was written in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShaderLanguage {
-    /// Plain SkSL with a `half4 main(float2 coord)` entry point.
+    /// Plain `SkSL` with a `half4 main(float2 coord)` entry point.
     Sksl,
     /// Shadertoy GLSL with a `void mainImage(out vec4, in vec2)` entry point,
-    /// translated to SkSL by [`Shader::shadertoy`].
+    /// translated to `SkSL` by [`Shader::shadertoy`].
     Shadertoy,
 }
 
@@ -45,7 +45,7 @@ impl std::fmt::Debug for Shader {
 }
 
 impl Shader {
-    /// A shader written in SkSL, Skia's shading language (GLSL ES 2 with
+    /// A shader written in `SkSL`, Skia's shading language (GLSL ES 2 with
     /// `float2`/`half4` style types; `vec2`/`vec4`/`mat3` are accepted too).
     ///
     /// ```glsl
@@ -69,7 +69,7 @@ impl Shader {
     /// declared for you, `fragCoord` has its origin at the bottom-left like on
     /// Shadertoy, and the output is opaque (Shadertoy ignores alpha).
     ///
-    /// Translation is textual, so the shader must stay within what SkSL
+    /// Translation is textual, so the shader must stay within what `SkSL`
     /// supports: object-like `#define NAME value` macros are expanded,
     /// `precision` statements are dropped, but function-like macros,
     /// `while` loops, non-constant loop bounds and `texture()` are not
@@ -103,7 +103,7 @@ impl Shader {
         self.inner.language
     }
 
-    /// The final SkSL source handed to Skia (after the Shadertoy translation).
+    /// The final `SkSL` source handed to Skia (after the Shadertoy translation).
     pub fn sksl_source(&self) -> &str {
         &self.inner.sksl
     }
@@ -195,10 +195,10 @@ impl ShaderUniforms {
     pub fn color(self, name: impl Into<Cow<'static, str>>, color: Color) -> Self {
         self.float4(
             name,
-            color.r as f32 / 255.0,
-            color.g as f32 / 255.0,
-            color.b as f32 / 255.0,
-            color.a as f32 / 255.0,
+            f32::from(color.r) / 255.0,
+            f32::from(color.g) / 255.0,
+            f32::from(color.b) / 255.0,
+            f32::from(color.a) / 255.0,
         )
     }
 
@@ -280,7 +280,9 @@ mod registry {
             id: id.clone(),
         });
 
-        let mut guard = REGISTRY.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = REGISTRY
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let registry = guard.get_or_insert_with(Registry::default);
         registry.inserts += 1;
         if registry.inserts.is_multiple_of(SWEEP_INTERVAL) {
@@ -313,7 +315,9 @@ mod registry {
             return None;
         }
 
-        let guard = REGISTRY.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = REGISTRY
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let entry = guard
             .as_ref()?
             .entries
@@ -355,7 +359,7 @@ uniform float4 iMouse;
 uniform float4 iDate;
 ";
 
-/// Entry point appended to every Shadertoy shader. SkSL coordinates start at
+/// Entry point appended to every Shadertoy shader. `SkSL` coordinates start at
 /// the top-left, Shadertoy's `fragCoord` at the bottom-left.
 const SHADERTOY_MAIN: &str = "
 half4 main(float2 fframesCoord) {
@@ -365,7 +369,7 @@ half4 main(float2 fframesCoord) {
 }
 ";
 
-/// Translates Shadertoy GLSL to SkSL as text. SkSL has no preprocessor, so
+/// Translates Shadertoy GLSL to `SkSL` as text. `SkSL` has no preprocessor, so
 /// this drops `precision` statements and expands object-like `#define`s.
 fn shadertoy_to_sksl(source: &str) -> String {
     let mut defines: Vec<(String, String)> = Vec::new();

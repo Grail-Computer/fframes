@@ -74,7 +74,7 @@ impl Scenes<'_> {
     }
 
     pub fn len(&self) -> usize {
-        self.0.as_ref().map(|s| s.len()).unwrap_or(0)
+        self.0.as_ref().map_or(0, std::vec::Vec::len)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -90,7 +90,7 @@ impl<'a> From<Vec<&'a dyn Scene>> for Scenes<'a> {
 
 impl<'a, T: AsRef<dyn Scene + 'a>> From<&'a [T]> for Scenes<'a> {
     fn from(arr: &'a [T]) -> Self {
-        Self(Some(arr.iter().map(|s| s.as_ref()).collect()))
+        Self(Some(arr.iter().map(std::convert::AsRef::as_ref).collect()))
     }
 }
 
@@ -116,7 +116,7 @@ impl<'a> ScenesWithAudio<'a> {
     }
 
     pub fn len(&self) -> usize {
-        self.0.as_ref().map(|s| s.len()).unwrap_or(0)
+        self.0.as_ref().map_or(0, std::vec::Vec::len)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -148,7 +148,7 @@ impl<'a> ScenesWithAudio<'a> {
         self.0.as_ref().map(|scenes| {
             scenes
                 .iter()
-                .flat_map(|scene| {
+                .filter_map(|scene| {
                     let scene: &'a dyn Scene = scene.scene;
                     scene.duration().used_video_files()
                 })

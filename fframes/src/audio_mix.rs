@@ -66,7 +66,7 @@ fn bessel_i0(x: f64) -> f64 {
     let mut term = 1.;
     let half = x / 2.;
     for k in 1..50 {
-        term *= (half / k as f64) * (half / k as f64);
+        term *= (half / f64::from(k)) * (half / f64::from(k));
         sum += term;
         if term < sum * 1e-12 {
             break;
@@ -172,11 +172,12 @@ struct Limiter {
 
 impl Limiter {
     fn new(options: LimiterOptions, sample_rate: usize) -> Self {
-        let lookahead =
-            ((options.lookahead_ms as f64 / 1000. * sample_rate as f64).round() as usize).max(1);
-        let release = (options.release_ms as f64 / 1000.).max(1e-4);
+        let lookahead = ((f64::from(options.lookahead_ms) / 1000. * sample_rate as f64).round()
+            as usize)
+            .max(1);
+        let release = (f64::from(options.release_ms) / 1000.).max(1e-4);
         let mut limiter = Self {
-            ceiling: 10f64.powf(options.ceiling_db as f64 / 20.),
+            ceiling: 10f64.powf(f64::from(options.ceiling_db) / 20.),
             lookahead,
             beta: 1. - (-1. / (release * sample_rate as f64)).exp(),
             delay: VecDeque::with_capacity(lookahead),
@@ -208,7 +209,7 @@ impl Limiter {
     }
 
     fn process(&mut self, left: f32, right: f32) -> (f32, f32) {
-        let peak = left.abs().max(right.abs()) as f64;
+        let peak = f64::from(left.abs().max(right.abs()));
         let required = if peak > self.ceiling {
             self.ceiling / peak
         } else {
@@ -318,9 +319,9 @@ impl PreparedTrack<'_> {
 
 /// Attenuation of a ducked track at output sample `n`.
 fn duck_db(voices: &[Range<f64>], ducking: &Ducking, n: f64, sample_rate: f64) -> f32 {
-    let attack = ducking.attack as f64 * sample_rate;
-    let hold = ducking.hold as f64 * sample_rate;
-    let release = ducking.release as f64 * sample_rate;
+    let attack = f64::from(ducking.attack) * sample_rate;
+    let hold = f64::from(ducking.hold) * sample_rate;
+    let release = f64::from(ducking.release) * sample_rate;
     let raised_cosine = |t: f64| (1. - (t.clamp(0., 1.) * std::f64::consts::PI).cos()) * 0.5;
 
     let mut depth: f64 = 0.;
@@ -396,7 +397,9 @@ impl<'m> AudioMixer<'m> {
         options: AudioMixOptions,
     ) -> Self {
         let mut missing = Vec::new();
-        let resolved = audio_map.map(|map| map.tracks()).unwrap_or_default();
+        let resolved = audio_map
+            .map(super::audio_map::ResolvedAudioMap::tracks)
+            .unwrap_or_default();
         let rate = sample_rate as f64;
         let rescale = sample_rate as f64 / map_sample_rate.max(1) as f64;
         let to_output = |sample: usize| (sample as f64 * rescale).round() as usize;
@@ -430,9 +433,9 @@ impl<'m> AudioMixer<'m> {
                 continue;
             }
 
-            let source_rate = audio.sample_rate as f64;
+            let source_rate = f64::from(audio.sample_rate);
             let ratio = source_rate / rate;
-            let source_start = track.mix.offset as f64 * source_rate;
+            let source_start = f64::from(track.mix.offset) * source_rate;
             let natural_end =
                 range.start as f64 + (audio.samples.len() as f64 - source_start) / ratio;
             let resampler = (audio.sample_rate as usize != sample_rate)
@@ -468,7 +471,7 @@ impl<'m> AudioMixer<'m> {
                         })
                         .cloned()
                         .collect(),
-                    ducking.merge_gap as f64 * rate,
+                    f64::from(ducking.merge_gap) * rate,
                 ),
                 None => Vec::new(),
             };
@@ -483,8 +486,8 @@ impl<'m> AudioMixer<'m> {
                 gain: db_to_gain(track.mix.gain_db),
                 pan,
                 mix: track.mix,
-                fade_in: track.mix.fade_in as f64 * rate,
-                fade_out: track.mix.fade_out as f64 * rate,
+                fade_in: f64::from(track.mix.fade_in) * rate,
+                fade_out: f64::from(track.mix.fade_out) * rate,
                 declick_in: options.declick && track.mix.offset > 0.,
                 declick_out: options.declick && (range.end as f64) < natural_end - 1.,
                 range,
@@ -537,23 +540,24 @@ impl<'m> AudioMixer<'m> {
 
                 let i = n - start;
                 let l = track.source_sample(track.left, position);
-                match track.right {
-                    Some(right_channel) => {
-                        let r = track.source_sample(right_channel, position);
-                        left[i] += l * gain * track.pan.0;
-                        right[i] += r * gain * track.pan.1;
-                    }
-                    None => {
-                        left[i] += l * gain * track.pan.0;
-                        right[i] += l * gain * track.pan.1;
-                    }
+                if let Some(right_channel) = track.right {
+                    let r = track.source_sample(right_channel, position);
+                    left[i] += l * gain * track.pan.0;
+                    right[i] += r * gain * track.pan.1;
+                } else {
+                    left[i] += l * gain * track.pan.0;
+                    right[i] += l * gain * track.pan.1;
                 }
             }
         }
 
         if self.master_gain != 1. {
-            left.iter_mut().for_each(|s| *s *= self.master_gain);
-            right.iter_mut().for_each(|s| *s *= self.master_gain);
+            for s in left.iter_mut() {
+                *s *= self.master_gain;
+            }
+            for s in right.iter_mut() {
+                *s *= self.master_gain;
+            }
         }
     }
 
@@ -652,8 +656,7 @@ impl<'m> AudioMixer<'m> {
                     ducked_db: t
                         .mix
                         .duck
-                        .map(|d| duck_db(&t.duck_under, &d, sample as f64, rate))
-                        .unwrap_or(0.),
+                        .map_or(0., |d| duck_db(&t.duck_under, &d, sample as f64, rate)),
                 }
             })
             .collect()
@@ -733,7 +736,7 @@ mod tests {
                 fps: 30,
                 sample_rate: RATE,
             },
-            |file| Ok(media.0[file].duration_in_seconds() as f64),
+            |file| Ok(f64::from(media.0[file].duration_in_seconds())),
         )
         .unwrap()
         .unwrap()
@@ -883,7 +886,7 @@ mod tests {
     fn resampling_keeps_a_tone_at_its_frequency_and_level() {
         let source_rate = 48000.;
         let tone: Vec<f32> = (0..48000)
-            .map(|i| (2. * std::f64::consts::PI * 1000. * i as f64 / source_rate).sin() as f32)
+            .map(|i| (2. * std::f64::consts::PI * 1000. * f64::from(i) / source_rate).sin() as f32)
             .collect();
         let media = Media(HashMap::from([("tone".into(), audio(tone, 48000))]));
         let map = resolve(AudioMap::from([("tone", Second(0.)..Eof)]), &media);

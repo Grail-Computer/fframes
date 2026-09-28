@@ -4,6 +4,7 @@ use colored::*;
 use core::fmt::Debug;
 use indicatif::ProgressBar;
 use once_cell::sync::OnceCell;
+use std::fmt::Write as _;
 use std::{
     ffi::c_int,
     path::{Path, PathBuf},
@@ -83,12 +84,12 @@ impl FFramesLogger for CompactFFramesLogger {
 
     fn log_frame(&self, _index: usize, _thread_number: usize) {
         if let Some(pb) = self.frames_progress_bar.get() {
-            pb.inc(1)
+            pb.inc(1);
         }
     }
 
     fn log_unprocessed_media_file(&self, filename: &str) {
-        println!("Can not process media file {filename}.")
+        println!("Can not process media file {filename}.");
     }
 
     fn init_audio_encoding(&self, frames_count: usize) -> FFramesRendererResult<()> {
@@ -181,7 +182,7 @@ pub enum FFramesLoggerVariant {
     Lines,
     /// One JSON object per line on stderr (`{"event":"progress","done":10,"total":100}`).
     Json,
-    /// Pass custom logger functionality by implementing FFramesLogger trait
+    /// Pass custom logger functionality by implementing `FFramesLogger` trait
     Custom(Arc<dyn FFramesLogger>),
 }
 
@@ -227,7 +228,7 @@ impl LinesLogger {
         if self.json {
             let mut line = format!("{{\"event\":{}", json_string(event));
             for (key, value) in fields {
-                line.push_str(&format!(",{}:{value}", json_string(key)));
+                let _ = write!(line, ",{}:{value}", json_string(key));
             }
             line.push('}');
             eprintln!("{line}");
@@ -246,7 +247,9 @@ pub(crate) fn json_string(value: &str) -> String {
             '"' => escaped.push_str("\\\""),
             '\\' => escaped.push_str("\\\\"),
             '\n' => escaped.push_str("\\n"),
-            c if (c as u32) < 0x20 => escaped.push_str(&format!("\\u{:04x}", c as u32)),
+            c if (c as u32) < 0x20 => {
+                let _ = write!(escaped, "\\u{:04x}", c as u32);
+            }
             c => escaped.push(c),
         }
     }

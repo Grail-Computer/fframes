@@ -157,9 +157,9 @@ impl fframes::Video for QuoteCardVideo<'_> {
                 <g
                     opacity={opacity * fade_out}
                     transform={Transform {
-                        translate_x: 960.0 * (1.0 - scale as f64),
-                        translate_y: 540.0 * (1.0 - scale as f64) + slide_y as f64,
-                        scale: fframes::Scale { x: scale as f64, y: scale as f64 },
+                        translate_x: 960.0 * (1.0 - f64::from(scale)),
+                        translate_y: 540.0 * (1.0 - f64::from(scale)) + f64::from(slide_y),
+                        scale: fframes::Scale { x: f64::from(scale), y: f64::from(scale) },
                         ..Default::default()
                     }}
                 >

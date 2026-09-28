@@ -37,7 +37,9 @@ struct Queue {
 
 impl Shared {
     fn lock(&self) -> MutexGuard<'_, Queue> {
-        self.queue.lock().unwrap_or_else(|e| e.into_inner())
+        self.queue
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 }
 
@@ -139,7 +141,7 @@ impl AudioOutput {
                         .shared
                         .feeder_wakeup
                         .wait(queue)
-                        .unwrap_or_else(|e| e.into_inner());
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
                 }
                 (queue.feed_position, queue.looping, queue.epoch)
             };

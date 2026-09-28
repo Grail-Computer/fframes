@@ -14,23 +14,6 @@ fn hashes_by_id(svgr: Svgr) -> HashMap<String, Option<u64>> {
         )
         .unwrap();
 
-    fn collect(group: &usvgr::Group, out: &mut HashMap<String, Option<u64>>) {
-        for node in group.children() {
-            match node {
-                usvgr::Node::Group(g) => {
-                    if !g.id().is_empty() {
-                        out.insert(g.id().to_owned(), g.static_hash());
-                    }
-                    collect(g, out);
-                }
-                usvgr::Node::Path(p) if !p.id().is_empty() => {
-                    out.insert(p.id().to_owned(), p.static_hash());
-                }
-                _ => {}
-            }
-        }
-    }
-
     let mut out = HashMap::new();
     collect(tree.root(), &mut out);
     out
@@ -163,4 +146,21 @@ fn identical_nodes_referencing_different_definitions_hash_differently() {
     assert!(first["r"].is_some());
     assert!(second["r"].is_some());
     assert_ne!(first["r"], second["r"]);
+}
+
+fn collect(group: &usvgr::Group, out: &mut HashMap<String, Option<u64>>) {
+    for node in group.children() {
+        match node {
+            usvgr::Node::Group(g) => {
+                if !g.id().is_empty() {
+                    out.insert(g.id().to_owned(), g.static_hash());
+                }
+                collect(g, out);
+            }
+            usvgr::Node::Path(p) if !p.id().is_empty() => {
+                out.insert(p.id().to_owned(), p.static_hash());
+            }
+            _ => {}
+        }
+    }
 }

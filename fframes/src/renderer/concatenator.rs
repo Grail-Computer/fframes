@@ -45,7 +45,7 @@ impl AvPacketAutoFree {
 impl Drop for AvPacketAutoFree {
     fn drop(&mut self) {
         unsafe {
-            av_packet_free(&mut self.av_packet);
+            av_packet_free(&raw mut self.av_packet);
         }
     }
 }
@@ -114,7 +114,7 @@ unsafe fn create_encoder_copy_from_file(
         let output_file = CString::new(output.to_string_lossy().as_ref())
             .map_err(RenderEncodingError::CStringError)?;
         avformat_alloc_output_context2(
-            &mut output_format_ctx,
+            &raw mut output_format_ctx,
             std::ptr::null_mut(),
             std::ptr::null_mut(),
             output_file.as_ptr(),
@@ -125,7 +125,7 @@ unsafe fn create_encoder_copy_from_file(
             match Stream::make_audio(output_format_ctx, &render_options.audio_encoder_options) {
                 Ok(audio_stream) => audio_stream,
                 Err(err) => {
-                    avformat_close_input(&mut input_format_ctx);
+                    avformat_close_input(&raw mut input_format_ctx);
                     avformat_free_context(output_format_ctx);
                     return Err(err);
                 }
@@ -137,9 +137,9 @@ unsafe fn create_encoder_copy_from_file(
         );
         (*output_video_stream).time_base = (*input_video_stream).time_base;
 
-        avformat_close_input(&mut input_format_ctx);
+        avformat_close_input(&raw mut input_format_ctx);
         avio_open(
-            &mut (*output_format_ctx).pb,
+            &raw mut (*output_format_ctx).pb,
             output_file.as_ptr(),
             AVIO_FLAG_WRITE,
         );
@@ -150,7 +150,7 @@ unsafe fn create_encoder_copy_from_file(
         if let Err(err) = crate::renderer::encoder::write_header(output_format_ctx, true) {
             audio_stream.free();
             if !(*output_format_ctx).pb.is_null() {
-                avio_closep(&mut (*output_format_ctx).pb);
+                avio_closep(&raw mut (*output_format_ctx).pb);
             }
             avformat_free_context(output_format_ctx);
             return Err(err);
@@ -177,13 +177,10 @@ unsafe fn validate_non_monotous_dts(
     packet: *mut AVPacket,
     last_mux_dts: &mut i64,
     av_format_context: *mut AVFormatContext,
-) -> Result<(), RenderEncodingError> {
+) {
     unsafe {
         let max: i64 = *last_mux_dts
-            + match (*(*av_format_context).oformat).flags & AVFMT_TS_NONSTRICT == 0 {
-                true => 1,
-                false => 0,
-            };
+            + i64::from((*(*av_format_context).oformat).flags & AVFMT_TS_NONSTRICT == 0);
 
         if (*packet).dts < max {
             if (*packet).pts >= (*packet).dts {
@@ -192,8 +189,6 @@ unsafe fn validate_non_monotous_dts(
 
             (*packet).dts = max;
         }
-
-        Ok(())
     }
 }
 
@@ -303,7 +298,7 @@ impl Encoder {
             let mut last_audio_mux_dts: Option<i64> = None;
             let mut packet = AvPacketAutoFree::new();
 
-            for file in files.iter() {
+            for file in files {
                 let mut input_format_ctx = std::ptr::null_mut();
 
                 // Open the file once and find both video and audio streams
@@ -312,7 +307,7 @@ impl Encoder {
 
                 ffmpeg_action!(
                     avformat_open_input(
-                        &mut input_format_ctx,
+                        &raw mut input_format_ctx,
                         input_file.as_ptr(),
                         std::ptr::null_mut(),
                         std::ptr::null_mut(),
@@ -344,7 +339,7 @@ impl Encoder {
                 }
 
                 if input_video_stream.is_null() {
-                    avformat_close_input(&mut input_format_ctx);
+                    avformat_close_input(&raw mut input_format_ctx);
                     return Err(RenderEncodingError::MissingVideoStreamInFile(
                         file.to_owned(),
                     ));
@@ -399,13 +394,13 @@ impl Encoder {
                                 file_video_end.max((*packet.get()).pts + (*packet.get()).duration);
 
                             if let Some(last_mux_dts) = last_video_mux_dts.as_mut() {
-                                validate_non_monotous_dts(packet.get(), last_mux_dts, self.oc)?;
+                                validate_non_monotous_dts(packet.get(), last_mux_dts, self.oc);
                             }
                             last_video_mux_dts = Some((*packet.get()).dts);
 
                             let ret = av_interleaved_write_frame(self.oc, packet.get());
                             if ret < 0 {
-                                avformat_close_input(&mut input_format_ctx);
+                                avformat_close_input(&raw mut input_format_ctx);
                                 let error_description =
                                     crate::renderer::encoder::av_error_to_string(ret);
                                 return Err(RenderEncodingError::CantWriteFrame(error_description));
@@ -420,7 +415,7 @@ impl Encoder {
 
                                 // Apply DTS validation for audio packets too
                                 if let Some(last_mux_dts) = last_audio_mux_dts.as_mut() {
-                                    validate_non_monotous_dts(packet.get(), last_mux_dts, self.oc)?;
+                                    validate_non_monotous_dts(packet.get(), last_mux_dts, self.oc);
                                 }
                                 last_audio_mux_dts = Some((*packet.get()).dts);
 
@@ -431,7 +426,7 @@ impl Encoder {
                                 );
                                 let ret = av_interleaved_write_frame(self.oc, packet.get());
                                 if ret < 0 {
-                                    avformat_close_input(&mut input_format_ctx);
+                                    avformat_close_input(&raw mut input_format_ctx);
                                     let error_description =
                                         crate::renderer::encoder::av_error_to_string(ret);
 
@@ -447,7 +442,7 @@ impl Encoder {
                     }
                 }
 
-                avformat_close_input(&mut input_format_ctx);
+                avformat_close_input(&raw mut input_format_ctx);
                 next_video_start = file_video_end;
             }
 

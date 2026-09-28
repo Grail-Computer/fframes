@@ -27,3 +27,6 @@ pixel-example = { path = "../examples/pixel-memory" }
 podcast-example = { path = "../examples/podcast" }
 teej_podcast_example = { path = "../examples/teej-podcast" }
 tiktok-example = { path = "../examples/tiktok" }
+
+[lints]
+workspace = true

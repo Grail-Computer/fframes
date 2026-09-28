@@ -1,4 +1,4 @@
-//! Monochrome system icons of the ChatGPT design system (`@openai/apps-sdk-ui`, MIT), the same
+//! Monochrome system icons of the `ChatGPT` design system (`@openai/apps-sdk-ui`, MIT), the same
 //! set the web editor uses. SVG path data on a 24x24 grid.
 
 pub(crate) struct Icon {

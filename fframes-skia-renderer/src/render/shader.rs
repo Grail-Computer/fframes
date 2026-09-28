@@ -9,7 +9,7 @@ use super::RenderCache;
 /// Compile a shader to a Skia runtime effect.
 ///
 /// The renderer does this lazily on first draw and only logs failures, so
-/// call it from a test to catch SkSL errors before rendering a video:
+/// call it from a test to catch `SkSL` errors before rendering a video:
 ///
 /// ```rust
 /// let shader = fframes::Shader::shadertoy(include_str!("tunnel.glsl"));
@@ -35,7 +35,7 @@ impl ShaderCache {
             .or_insert_with(|| {
                 compile_shader(shader)
                     .map_err(|err| {
-                        eprintln!("fframes: failed to compile shader #{}:\n{err}", shader.id())
+                        eprintln!("fframes: failed to compile shader #{}:\n{err}", shader.id());
                     })
                     .ok()
             })

@@ -27,3 +27,6 @@ doctest = false
 [[bin]]
 name = "fframes-intro"
 path = "src/main.rs"
+
+[lints]
+workspace = true

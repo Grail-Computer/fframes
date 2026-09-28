@@ -198,9 +198,9 @@ impl fframes::Video for InstallSceneVideo<'_> {
                         dominant-baseline="central"
                         letter-spacing="16"
                         transform={Transform {
-                            translate_x: 960.0 * (1.0 - title_scale as f64),
-                            translate_y: title_y as f64 * (1.0 - title_scale as f64),
-                            scale: fframes::Scale { x: title_scale as f64, y: title_scale as f64 },
+                            translate_x: 960.0 * (1.0 - f64::from(title_scale)),
+                            translate_y: f64::from(title_y) * (1.0 - f64::from(title_scale)),
+                            scale: fframes::Scale { x: f64::from(title_scale), y: f64::from(title_scale) },
                             ..Default::default()
                         }}
                     >
@@ -222,7 +222,7 @@ impl fframes::Video for InstallSceneVideo<'_> {
                     <g
                         opacity={box_opacity}
                         transform={Transform {
-                            translate_y: box_slide_y as f64,
+                            translate_y: f64::from(box_slide_y),
                             ..Default::default()
                         }}
                     >

@@ -26,7 +26,7 @@ impl std::fmt::Display for VttError {
         } = self;
         let message = match message.as_ref() {
             Some(message) => format!("\n{message}"),
-            None => "".to_owned(),
+            None => String::new(),
         };
 
         write!(
@@ -98,13 +98,14 @@ impl<'a> ContextError<LocatedSpan<&'a str>> for VttError {
 impl<'a> From<nom::Err<Error<LocatedSpan<&'a str>>>> for VttError {
     fn from(error: nom::Err<Error<LocatedSpan<&'a str>>>) -> Self {
         match error {
-            nom::Err::Error(Error { input, code }) => VttError::from_error_kind(input, code),
-            nom::Err::Failure(Error { input, code }) => VttError::from_error_kind(input, code),
+            nom::Err::Error(Error { input, code }) | nom::Err::Failure(Error { input, code }) => {
+                VttError::from_error_kind(input, code)
+            }
             nom::Err::Incomplete(_) => VttError {
                 line: 0,
                 offset: 0,
-                fragment: "".to_owned(),
-                looking_for: "".to_owned(),
+                fragment: String::new(),
+                looking_for: String::new(),
                 message: Some("Incomplete data, giving up parsing.".to_owned()),
             },
         }

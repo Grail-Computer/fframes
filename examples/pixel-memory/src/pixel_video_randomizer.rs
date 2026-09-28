@@ -1,4 +1,4 @@
-use fframes::{MediaProvider, Scene, lazy_static::lazy_static};
+use fframes::{MediaProvider, Scene};
 use rand::{Rng, seq::SliceRandom};
 use std::{
     collections::{HashMap, VecDeque},
@@ -20,46 +20,48 @@ struct SongInfo {
     tempo: f32,
 }
 
-lazy_static! {
-    static ref SONGS: HashMap<&'static str, SongInfo> = HashMap::from([
-        (
-            "The_Farewell.mp3",
-            SongInfo {
-                duration: 166.0,
-                tempo: 1.12
-            }
-        ),
-        (
-            "vostok_zapomny.mp3",
-            SongInfo {
-                duration: 185.62,
-                tempo: 1.08
-            }
-        ),
-        (
-            "naruto_grief.mp3",
-            SongInfo {
-                duration: 196.,
-                tempo: 1.22
-            }
-        ),
-        (
-            "revenge.mp3",
-            SongInfo {
-                duration: 132.,
-                tempo: 1.05
-            }
-        ),
-        (
-            "passenger.mp3",
-            SongInfo {
-                duration: 189.,
-                tempo: 1.2
-            }
-        )
-    ]);
-    pub static ref ALL_SONGS: Vec<&'static str> = SONGS.keys().copied().collect();
-}
+static SONGS: std::sync::LazyLock<HashMap<&'static str, SongInfo>> =
+    std::sync::LazyLock::new(|| {
+        HashMap::from([
+            (
+                "The_Farewell.mp3",
+                SongInfo {
+                    duration: 166.0,
+                    tempo: 1.12,
+                },
+            ),
+            (
+                "vostok_zapomny.mp3",
+                SongInfo {
+                    duration: 185.62,
+                    tempo: 1.08,
+                },
+            ),
+            (
+                "naruto_grief.mp3",
+                SongInfo {
+                    duration: 196.,
+                    tempo: 1.22,
+                },
+            ),
+            (
+                "revenge.mp3",
+                SongInfo {
+                    duration: 132.,
+                    tempo: 1.05,
+                },
+            ),
+            (
+                "passenger.mp3",
+                SongInfo {
+                    duration: 189.,
+                    tempo: 1.2,
+                },
+            ),
+        ])
+    });
+pub static ALL_SONGS: std::sync::LazyLock<Vec<&'static str>> =
+    std::sync::LazyLock::new(|| SONGS.keys().copied().collect());
 
 impl<'a> PixelVideo<'a> {
     fn randomize_scenes(
@@ -232,10 +234,16 @@ impl<'a> RandomPhotos<'a> {
         images: &'static [String],
         videos: &'static [String],
     ) -> Self {
-        let mut images = images.iter().map(|name| name.as_str()).collect::<Vec<_>>();
+        let mut images = images
+            .iter()
+            .map(std::string::String::as_str)
+            .collect::<Vec<_>>();
         images.shuffle(rng);
 
-        let mut videos = videos.iter().map(|name| name.as_str()).collect::<Vec<_>>();
+        let mut videos = videos
+            .iter()
+            .map(std::string::String::as_str)
+            .collect::<Vec<_>>();
         videos.shuffle(rng);
 
         Self {

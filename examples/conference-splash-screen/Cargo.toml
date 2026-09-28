@@ -30,3 +30,6 @@ required-features = ["renderer"]
 name = "render_all"
 path = "src/bin/render_all.rs"
 required-features = ["renderer"]
+
+[lints]
+workspace = true

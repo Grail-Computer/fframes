@@ -20,12 +20,12 @@ impl Scene for SpeakerScene<'_> {
     }
 
     fn render_frame<'a>(&'a self, mut frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
+        const TITLE_Y: usize = 350;
         let tilt_angle = frame.animate(&fframes::timeline!(
           at 0.3, animate 0.4 => 1.2, animation::Easing::Linear,
           at 2.3 => 4.1, animate 1.2 => 0.8, animation::Easing::Linear
         ));
 
-        const TITLE_Y: usize = 350;
         let title_opts = fframes::BreakLinesOpts {
             width: 970,
             line_height: 1.2,

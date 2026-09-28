@@ -8,7 +8,7 @@ include_media_dir!(pub struct ShadersMedia, "examples/shaders/media");
 pub const AURORA_SKSL: &str = include_str!("shaders/aurora.sksl");
 pub const TORUS_SHADERTOY: &str = include_str!("shaders/torus.glsl");
 
-/// GPU shader layers composed with regular SVG: an SkSL background, a
+/// GPU shader layers composed with regular SVG: an `SkSL` background, a
 /// Shadertoy raymarcher clipped into a card, and text drawn on top.
 #[derive(Debug)]
 pub struct ShadersVideo<'a> {

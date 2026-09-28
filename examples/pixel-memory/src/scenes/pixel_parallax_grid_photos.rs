@@ -35,12 +35,12 @@ impl Scene for ParallaxGridPhotos<'_> {
         fframes::svgr!(
             <g
                 id="bg_parallax_images"
-                transform={Transform { translate_y: -bg_position as f64, ..Default::default() }}
+                transform={Transform { translate_y: f64::from(-bg_position), ..Default::default() }}
             >
                 {self.bg_photos.iter().enumerate().filter_map(|(index, photo)| {
                     let image = ctx.get_image(photo)?;
-                    let scale_ratio = image.metadata.height as f64 / PHOTO_HEIGHT;
-                    let width = image.metadata.width as f64 / scale_ratio;
+                    let scale_ratio = f64::from(image.metadata.height) / PHOTO_HEIGHT;
+                    let width = f64::from(image.metadata.width) / scale_ratio;
 
                     Some(fframes::svgr!(
                         <image
@@ -73,7 +73,7 @@ impl Scene for ParallaxGridPhotos<'_> {
               id="main_parallax_images"
               transform={
                 Transform {
-                    translate_y: -frame.animate(&self.main_animation) as f64,
+                    translate_y: f64::from(-frame.animate(&self.main_animation)),
                     ..Default::default()
                 }}
               >
@@ -92,7 +92,7 @@ impl Scene for ParallaxGridPhotos<'_> {
                             height: PHOTO_HEIGHT as u32,
                             stroke_width: 48,
                             transform: Transform {
-                                translate_x: -width as f64 / 2.,
+                                translate_x: f64::from(-width) / 2.,
                                 ..Default::default()
                             },
                             ..Default::default()

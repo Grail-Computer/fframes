@@ -89,18 +89,21 @@ impl Transform {
 impl Animatable for Transform {
     fn apply_progress(&self, to: &Self, progress: f32) -> Self {
         Transform {
-            translate_x: self.translate_x + (to.translate_x - self.translate_x) * progress as f64,
-            translate_y: self.translate_y + (to.translate_y - self.translate_y) * progress as f64,
+            translate_x: self.translate_x
+                + (to.translate_x - self.translate_x) * f64::from(progress),
+            translate_y: self.translate_y
+                + (to.translate_y - self.translate_y) * f64::from(progress),
             rotate: Rotate {
-                angle: self.rotate.angle + (to.rotate.angle - self.rotate.angle) * progress as f64,
+                angle: self.rotate.angle
+                    + (to.rotate.angle - self.rotate.angle) * f64::from(progress),
                 origin: self.rotate.origin.or(to.rotate.origin),
             },
             scale: Scale {
-                x: self.scale.x + (to.scale.x - self.scale.x) * progress as f64,
-                y: self.scale.y + (to.scale.y - self.scale.y) * progress as f64,
+                x: self.scale.x + (to.scale.x - self.scale.x) * f64::from(progress),
+                y: self.scale.y + (to.scale.y - self.scale.y) * f64::from(progress),
             },
-            skew_x: self.skew_x + (to.skew_x - self.skew_x) * progress as f64,
-            skew_y: self.skew_y + (to.skew_y - self.skew_y) * progress as f64,
+            skew_x: self.skew_x + (to.skew_x - self.skew_x) * f64::from(progress),
+            skew_y: self.skew_y + (to.skew_y - self.skew_y) * f64::from(progress),
         }
     }
 }
@@ -114,7 +117,7 @@ pub struct Rotate {
 impl From<f32> for Rotate {
     fn from(angle: f32) -> Self {
         Rotate {
-            angle: angle as f64,
+            angle: f64::from(angle),
             origin: None,
         }
     }
@@ -150,8 +153,8 @@ impl From<f64> for Scale {
 impl From<f32> for Scale {
     fn from(value: f32) -> Self {
         Scale {
-            x: value as f64,
-            y: value as f64,
+            x: f64::from(value),
+            y: f64::from(value),
         }
     }
 }
@@ -446,12 +449,12 @@ mod tests {
             panic!("Expected a transform attribute");
         };
 
-        assert_relative_eq!(t.a, 0.8660254037844387, epsilon = 1e-10);
-        assert_relative_eq!(t.b, 0.49999999999999994, epsilon = 1e-10);
-        assert_relative_eq!(t.c, -0.49999999999999994, epsilon = 1e-10);
-        assert_relative_eq!(t.d, 0.8660254037844387, epsilon = 1e-10);
-        assert_relative_eq!(t.e, 11.339745962155611, epsilon = 1e-10);
-        assert_relative_eq!(t.f, -2.3205080756887746, epsilon = 1e-10);
+        assert_relative_eq!(t.a, 0.866_025_403_784_438_7, epsilon = 1e-10);
+        assert_relative_eq!(t.b, 0.499_999_999_999_999_94, epsilon = 1e-10);
+        assert_relative_eq!(t.c, -0.499_999_999_999_999_94, epsilon = 1e-10);
+        assert_relative_eq!(t.d, 0.866_025_403_784_438_7, epsilon = 1e-10);
+        assert_relative_eq!(t.e, 11.339_745_962_155_611, epsilon = 1e-10);
+        assert_relative_eq!(t.f, -2.320_508_075_688_774_6, epsilon = 1e-10);
     }
 
     #[test]
@@ -534,7 +537,7 @@ mod tests {
 
         assert_relative_eq!(t.a, 2.0, epsilon = 1e-10);
         assert_relative_eq!(t.b, 0., epsilon = 1e-10);
-        assert_relative_eq!(t.c, 1.9999999999999998, epsilon = 1e-10);
+        assert_relative_eq!(t.c, 1.999_999_999_999_999_8, epsilon = 1e-10);
         assert_relative_eq!(t.d, 2.0, epsilon = 1e-10);
         assert_relative_eq!(t.e, 25.0, epsilon = 1e-10);
         assert_relative_eq!(t.f, 215.0, epsilon = 1e-10);

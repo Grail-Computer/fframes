@@ -21,7 +21,7 @@ use fframes::usvgr;
 use fframes::usvgr::filter;
 use fframes::usvgr::tiny_skia_path;
 
-/// FxHash (the hasher rustc uses): a couple of instructions per word, which
+/// `FxHash` (the hasher rustc uses): a couple of instructions per word, which
 /// matters because every static group is fingerprinted on every frame.
 #[derive(Default)]
 struct FxHasher(u64);
@@ -36,12 +36,12 @@ impl FxHasher {
 
     #[inline]
     fn f32(&mut self, value: f32) {
-        self.add(value.to_bits() as u64);
+        self.add(u64::from(value.to_bits()));
     }
 
     #[inline]
     fn bool(&mut self, value: bool) {
-        self.add(value as u64);
+        self.add(u64::from(value));
     }
 
     #[inline]
@@ -96,12 +96,12 @@ impl Hasher for FxHasher {
 
     #[inline]
     fn write_u8(&mut self, i: u8) {
-        self.add(i as u64);
+        self.add(u64::from(i));
     }
 
     #[inline]
     fn write_u32(&mut self, i: u32) {
-        self.add(i as u64);
+        self.add(u64::from(i));
     }
 
     #[inline]
@@ -180,8 +180,8 @@ fn hash_exact_group(
             usvgr::Node::Path(path) => {
                 h.write_u8(1);
                 let has_pattern = [
-                    path.fill().map(|fill| fill.paint()),
-                    path.stroke().map(|stroke| stroke.paint()),
+                    path.fill().map(fframes::usvgr::Fill::paint),
+                    path.stroke().map(fframes::usvgr::Stroke::paint),
                 ]
                 .into_iter()
                 .flatten()
@@ -512,12 +512,16 @@ fn hash_transfer_function(h: &mut FxHasher, func: &filter::TransferFunction) {
         filter::TransferFunction::Table(values) => {
             h.write_u8(1);
             h.write_usize(values.len());
-            values.iter().for_each(|v| h.f32(*v));
+            for v in values {
+                h.f32(*v);
+            }
         }
         filter::TransferFunction::Discrete(values) => {
             h.write_u8(2);
             h.write_usize(values.len());
-            values.iter().for_each(|v| h.f32(*v));
+            for v in values {
+                h.f32(*v);
+            }
         }
         filter::TransferFunction::Linear { slope, intercept } => {
             h.write_u8(3);
@@ -564,7 +568,9 @@ fn hash_filter_kind(h: &mut FxHasher, kind: &filter::Kind) {
             match fe.kind() {
                 filter::ColorMatrixKind::Matrix(values) => {
                     h.write_u8(0);
-                    values.iter().for_each(|v| h.f32(*v));
+                    for v in values {
+                        h.f32(*v);
+                    }
                 }
                 filter::ColorMatrixKind::Saturate(v) => {
                     h.write_u8(1);
@@ -708,7 +714,7 @@ fn hash_filter_kind(h: &mut FxHasher, kind: &filter::Kind) {
             h.f32(fe.base_frequency_x().get());
             h.f32(fe.base_frequency_y().get());
             h.write_u32(fe.num_octaves());
-            h.add(fe.seed() as i64 as u64);
+            h.add(i64::from(fe.seed()) as u64);
             h.bool(fe.stitch_tiles());
             h.write_u8(fe.kind() as u8);
         }

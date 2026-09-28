@@ -37,17 +37,17 @@ impl Scene for SinglePhotoFloat<'_> {
         let original_height = image.metadata.height as f32;
         let aspect_ratio = original_width / original_height;
 
-        let photo_width = if aspect_ratio > 1.0 {
+        let photo_width = f64::from(if aspect_ratio > 1.0 {
             BASE_PHOTO_SIZE
         } else {
             BASE_PHOTO_SIZE * aspect_ratio
-        } as f64;
+        });
 
-        let photo_height = if aspect_ratio > 1.0 {
+        let photo_height = f64::from(if aspect_ratio > 1.0 {
             BASE_PHOTO_SIZE / aspect_ratio
         } else {
             BASE_PHOTO_SIZE
-        } as f64;
+        });
 
         let mut transform = frame.animate(&self.transform_animation);
         transform.rotate = frame.animate(&self.rotation_animation).into();

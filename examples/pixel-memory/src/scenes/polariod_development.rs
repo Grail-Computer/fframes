@@ -9,6 +9,11 @@ use rand::Rng;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::sync::OnceLock;
 
+// Larger photos, thinner border, squarer corners
+const BORDER_SIZE: f32 = 14.0;
+const CAPTION_HEIGHT: f32 = 60.0;
+const MIN_PHOTO_DIMENSION: f32 = 450.0;
+
 pub struct PolaroidDevelopment<'a> {
     duration: f32,
     photos: Vec<PhotoWithExif<'a>>,
@@ -56,11 +61,6 @@ impl Scene for PolaroidDevelopment<'_> {
                 let original_width = image.metadata.width as f32;
                 let original_height = image.metadata.height as f32;
 
-                // Larger photos, thinner border, squarer corners
-                const BORDER_SIZE: f32 = 14.0;
-                const CAPTION_HEIGHT: f32 = 60.0;
-                const MIN_PHOTO_DIMENSION: f32 = 450.0;
-
                 // Dynamic max based on current video size
                 let max_photo_width = (video_width * 0.60).max(MIN_PHOTO_DIMENSION);
                 let max_photo_height = (video_height * 0.80).max(MIN_PHOTO_DIMENSION);
@@ -100,8 +100,8 @@ impl Scene for PolaroidDevelopment<'_> {
                             translate_x: translate_x.into(),
                             translate_y: translate_y.into(),
                             rotate: Rotate {
-                                angle: rotation as f64,
-                                origin: Some((center_x as f64, center_y as f64))
+                                angle: f64::from(rotation),
+                                origin: Some((f64::from(center_x), f64::from(center_y)))
                             },
                             ..Default::default()
                         }}
@@ -185,15 +185,13 @@ impl<'a, 'media: 'a> PhotoWithExif<'a> {
         let image = ctx.get_image(self.id)?;
         match self.id {
             "055.jpg" => return Some((image, "1996")),
-            "049.jpg" => return Some((image, "2003")),
-            "024.jpg" => return Some((image, "2003")),
+            "049.jpg" | "024.jpg" | "031.jpg" => return Some((image, "2003")),
             "030.jpg" => return Some((image, "2018")),
             "042.jpg" => return Some((image, "2006")),
             "058.jpg" => return Some((image, "2001")),
-            "031.jpg" => return Some((image, "2003")),
             "041.jpg" | "060.jpg" => return Some((image, "")),
             _ => (),
-        };
+        }
 
         // Parsing EXIF data occurs during the on-demand render, and it’s a rather long, blocking process
         // that only becomes available after the context is created.

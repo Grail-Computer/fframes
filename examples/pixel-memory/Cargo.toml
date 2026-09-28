@@ -33,3 +33,6 @@ doctest = false
 name = "pixel_memory_example_bin"
 path = "src/main.rs"
 required-features = ["renderer"]
+
+[lints]
+workspace = true

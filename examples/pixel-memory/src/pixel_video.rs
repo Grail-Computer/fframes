@@ -3,11 +3,13 @@ use fframes::{
     AnimateRuntimeInput, AudioMap, FFramesContext, Frame, Scene, Scenes, Svgr, Transform, Video,
     animation::{AnimationRuntime, Easing},
     include_media_dir,
-    lazy_static::lazy_static,
 };
 use std::sync::Arc;
 
 include_media_dir!(pub struct PixelMedia, "examples/pixel-memory/media");
+
+static HEART_RUNTIME: std::sync::LazyLock<AnimationRuntime> =
+    std::sync::LazyLock::new(|| AnimationRuntime::new(3.0, &Easing::EaseInOut));
 
 #[derive(Debug)]
 pub struct PixelVideo<'a> {
@@ -110,10 +112,6 @@ impl Video for PixelVideo<'_> {
               {self.bokeh_circles.iter().enumerate().map(|(index, circle)| {
                 let deviation = if index % 2 == 0 { deviation1 } else { deviation2 };
                 let (heart_x, heart_y) = circle.final_heart_point;
-
-                lazy_static! {
-                  static ref HEART_RUNTIME: AnimationRuntime = AnimationRuntime::new(3.0, &Easing::EaseInOut);
-                };
 
                 fframes::svgr!(
                   <circle

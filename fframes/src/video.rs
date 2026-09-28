@@ -15,7 +15,7 @@ pub trait Video: Sync + Sized {
     /// Background color of the video. This allows to set a solid color background.
     ///
     /// Make sure if you want to render a transparent video use `Color::TRANSPARENT` here
-    /// **and** set the proper encoder and pixel_format that supports transparency
+    /// **and** set the proper encoder and `pixel_format` that supports transparency
     /// (e.g. encoder libx265 with yuva420p pixel format) when rendering the video.
     const BACKGROUND_COLOR: Color = Color::BLACK;
 
@@ -191,7 +191,7 @@ pub fn resolve_timeline<
 
     if let Some(resolved_audio_map) = resolved_audio_map.as_mut() {
         resolved_audio_map.round_max_duration(TAudioUnit::from_frames(duration, time_base));
-    };
+    }
 
     Ok(ResolvedRenderingTimeline {
         audio_map: resolved_audio_map,

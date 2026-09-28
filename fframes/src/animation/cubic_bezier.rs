@@ -4,7 +4,7 @@
 // These values are established by empiricism with tests (tradeoff: performance VS precision)
 const NEWTON_ITERATIONS: usize = 4;
 const NEWTON_MIN_SLOPE: f32 = 0.001;
-const SUBDIVISION_PRECISION: f32 = 0.0000001;
+const SUBDIVISION_PRECISION: f32 = 0.000_000_1;
 const SUBDIVISION_MAX_ITERATIONS: usize = 10;
 
 const K_SPLINE_TABLE_SIZE: usize = 11;

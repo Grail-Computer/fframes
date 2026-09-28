@@ -181,7 +181,7 @@ impl Video for PodcastVideo<'_> {
 
                 <rect
                     y={900}
-                    x={1920 / 2 - (48 + goose_vis.len() * 20) / 2}
+                    x={1920 / 2 - usize::midpoint(48, goose_vis.len() * 20)}
                     rx="32"
                     ry="32"
                     fill="black"

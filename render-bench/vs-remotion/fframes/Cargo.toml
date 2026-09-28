@@ -14,3 +14,6 @@ fframes_native_player.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 fframes_native_player = { workspace = true, features = ["metal"] }
+
+[lints]
+workspace = true

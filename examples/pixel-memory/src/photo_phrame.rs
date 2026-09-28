@@ -27,7 +27,7 @@ impl Default for PhotoFrame {
             ry: 0,
             opacity: 1.0,
             transform: Transform::default(),
-            transform_origin: "".to_string(),
+            transform_origin: String::new(),
         }
     }
 }
