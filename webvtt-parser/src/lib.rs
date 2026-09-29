@@ -42,10 +42,10 @@ impl Display for Time {
         if hours > 0 {
             write!(
                 formatter,
-                "{hours:02}:{minutes:02}:{seconds:02}.{milliseconds:03}",
+                "{hours:02}:{minutes:02}:{seconds:02}.{milliseconds:03}"
             )
         } else {
-            write!(formatter, "{minutes:02}:{seconds:02}.{milliseconds:03}",)
+            write!(formatter, "{minutes:02}:{seconds:02}.{milliseconds:03}")
         }
     }
 }
