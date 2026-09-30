@@ -232,7 +232,9 @@ impl VideoDecodersWorker {
         offset: i64,
         ctx: &FFramesContext<'_, 'media>,
         options: &SyncVideoFrameInput<'media>,
-    ) -> crate::error::Result<Option<Arc<impl FFramesSyncedVideoFrame<'media> + 'media>>> {
+    ) -> crate::error::Result<
+        Option<Arc<impl FFramesSyncedVideoFrame<'media> + 'media + use<'media>>>,
+    > {
         use crate::media::{ImageMetadata, OwnedSharedString};
 
         let Some(metadata) = media_ref.metadata else {
@@ -309,7 +311,7 @@ impl VideoDecodersWorker {
         mut offset: i64,
         ctx: &FFramesContext<'_, 'media>,
         options: &SyncVideoFrameInput,
-    ) -> Result<Option<Arc<impl FFramesSyncedVideoFrame<'media> + 'media>>> {
+    ) -> Result<Option<Arc<impl FFramesSyncedVideoFrame<'media> + 'media + use<'media>>>> {
         use crate::error::FFramesError;
         use fframes_media::FFramesMediaError;
 

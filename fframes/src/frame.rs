@@ -467,6 +467,87 @@ impl Frame {
             .ok()
             .flatten()
     }
+
+    /// Returns the frame of a video file at `source_second`, a position in the file rather than
+    /// on the timeline. Trims, holds, freeze frames and speed changes are plain arithmetic:
+    ///
+    /// ```rust,ignore
+    /// // play clip.mp4 from 2.5 s at 1.5x from second 4 of the scene, holding the last frame
+    /// let src = 2.5 + (frame.seconds() - 4.0).clamp(0.0, 3.0) * 1.5;
+    /// let image = frame.get_video_frame_at(ctx, "clip.mp4", src, None)?.into_image();
+    /// ```
+    ///
+    /// The position is clamped to the file: before 0 shows the first frame and past the end
+    /// holds the last one, so a clip never disappears at its edges. Returns `None` when the
+    /// file is missing or cannot be decoded; in the editor it returns `editor_fallback_image`.
+    pub fn get_video_frame_at<'media>(
+        &self,
+        ctx: &crate::FFramesContext<'_, 'media>,
+        file_name: impl AsRef<str>,
+        source_second: f32,
+        editor_fallback_image: Option<&'media crate::media::ImageData<'media>>,
+    ) -> Option<Arc<impl FFramesSyncedVideoFrame<'media> + 'media>> {
+        let video = ctx.get_video(file_name.as_ref())?;
+        let duration = video.metadata.as_ref().map(|m| m.duration);
+        let input = SyncVideoFrameInput {
+            start_from: 0.0,
+            looping: false,
+            editor_fallback_image,
+        };
+        let decode = |offset: i64| {
+            self.worker_local_video_decoders
+                .get_synced_frame(video, offset, ctx, &input)
+                .map_err(|e| {
+                    crate::log!("Error while decoding video frame: {:?}", e);
+                })
+                .ok()
+                .flatten()
+        };
+        let offset = source_second_to_offset(source_second, self.fps, duration);
+        // the container duration can round past the last decodable frame
+        decode(offset).or_else(|| (offset > 0).then(|| decode(offset - 1)).flatten())
+    }
+}
+
+/// The decoder offset (frames at the video's fps) of a position in a video file, clamped to the
+/// frames the file has. `duration` is the file's length in seconds when known.
+pub(crate) fn source_second_to_offset(
+    source_second: f32,
+    fps: usize,
+    duration: Option<f32>,
+) -> i64 {
+    let offset = if source_second.is_finite() {
+        (source_second.max(0.0) * fps as f32).round() as i64
+    } else {
+        0
+    };
+    match duration {
+        Some(duration) if duration > 0.0 => {
+            let last = ((duration * fps as f32).floor() as i64 - 1).max(0);
+            offset.min(last)
+        }
+        _ => offset,
+    }
+}
+
+#[cfg(test)]
+mod video_frame_at_tests {
+    use super::source_second_to_offset;
+
+    #[test]
+    fn maps_seconds_to_frames() {
+        assert_eq!(source_second_to_offset(0.0, 30, Some(10.0)), 0);
+        assert_eq!(source_second_to_offset(2.5, 30, Some(10.0)), 75);
+        assert_eq!(source_second_to_offset(1.0 / 60.0 + 1.0, 30, None), 31);
+    }
+
+    #[test]
+    fn clamps_to_the_file() {
+        assert_eq!(source_second_to_offset(-3.0, 30, Some(10.0)), 0);
+        assert_eq!(source_second_to_offset(12.0, 30, Some(10.0)), 299);
+        assert_eq!(source_second_to_offset(f32::NAN, 30, Some(10.0)), 0);
+        assert_eq!(source_second_to_offset(12.0, 30, None), 360);
+    }
 }
 
 #[cfg(test)]

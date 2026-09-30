@@ -471,6 +471,11 @@ let Some(video_frame) = frame.get_synced_video_frame(ctx, "clip.mp4", &fframes::
 }) else { return Svgr::empty() };
 let image = video_frame.into_image(); // <image href={image.href()} .../>
 
+// A frame at an explicit position in the file: trims, holds and speed changes are arithmetic, the
+// position is clamped to the file (first frame before 0, last frame held past the end).
+let src = 2.5 + (frame.seconds() - 4.0).clamp(0.0, 3.0) * 1.5; // from 2.5 s at 1.5x, then hold
+let held = frame.get_video_frame_at(ctx, "clip.mp4", src, None);
+
 // Audio spectrum for the current frame (see examples/audio-announce).
 let bars = frame.visualize_audio_frame(fframes::VisualizeFrameInput {
     audio: ctx.get_audio("track.mp3")?, // listed in `fn audio`, so it is loaded

@@ -117,6 +117,9 @@ family, size and weight in the `<text>` attributes. `text-anchor="middle"` cente
   and combine providers with `CombinedMediaProvider::from([&static_media as &dyn MediaProvider, &media])`.
 - Video frames: `frame.get_synced_video_frame(ctx, "clip.mp4", &SyncVideoFrameInput { start_from, looping, editor_fallback_image })`
   then `<image href={video_frame.href()} .../>` (needs the `compile-time-svgtree` feature).
+  For trims, holds and speed changes use `frame.get_video_frame_at(ctx, "clip.mp4", source_second, None)`:
+  `source_second` is a position in the file (`src + (t - start).clamp(0.0, len) * speed`), clamped to it.
+  Crop or zoom a clip by drawing the `<image>` larger than its window inside a `clipPath`.
 - Subtitles: `ctx.get_subtitles("subs.vtt").and_then(|s| frame.get_subtitle_phrase(s))`.
 - Audio spectrum: `frame.visualize_audio_frame(VisualizeFrameInput { audio, sample_size: SampleSize::S256, smooth_level: 4, window: Some(WindowFunction::Hann) })`.
 
