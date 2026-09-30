@@ -38,6 +38,8 @@ kamadak-exif.workspace = true
 # these are renderer/encoder specific dependnecies
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 svgr = { workspace = true, optional = true }
+# text measurement shapes like the renderer (usvgr lays text out with the same rustybuzz)
+rustybuzz = "0.12"
 rayon = "1.5.1"
 colored = "2"
 futures = "0.3.24"

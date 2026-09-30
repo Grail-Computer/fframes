@@ -344,10 +344,16 @@ fn calc_text_width(
 ) -> usize {
     match text {
         "" | "\n" | "\r" => 0,
-        text => text
-            .chars()
-            .map(|char| char_width(char, font_face, font_size, font_variant))
-            .sum(),
+        text => match font_variant {
+            // shaping applies the font's kerning, which the renderer draws with
+            FontVariant::Variable => font_face.shaped_width(font_size, text),
+            FontVariant::Monospaced(_) => None,
+        }
+        .unwrap_or_else(|| {
+            text.chars()
+                .map(|char| char_width(char, font_face, font_size, font_variant))
+                .sum()
+        }),
     }
 }
 
@@ -603,6 +609,44 @@ mod tests {
                 monospaced: self.monospaced,
             }))
         }
+    }
+
+    /// A face that reports a shaped (kerned) width 2 px narrower per character pair.
+    #[derive(Debug)]
+    struct KernedFace;
+
+    impl FontFace<'_> for KernedFace {
+        fn is_monospaced(&self) -> Option<bool> {
+            Some(false)
+        }
+
+        fn resolve_char_width(&self, _font_size: usize, _char: char) -> Option<usize> {
+            Some(CHAR_WIDTH)
+        }
+
+        fn shaped_width(&self, _font_size: usize, text: &str) -> Option<usize> {
+            let n = text.chars().count();
+            Some(n * CHAR_WIDTH - 2 * n.saturating_sub(1))
+        }
+    }
+
+    #[test]
+    fn text_width_uses_the_shaped_width_when_the_face_has_one() {
+        assert_eq!(
+            calc_text_width("AVA", &KernedFace, 16, FontVariant::Variable),
+            26
+        );
+        // monospaced layout stays on the cell width
+        assert_eq!(
+            calc_text_width("AVA", &KernedFace, 16, FontVariant::Monospaced(CHAR_WIDTH)),
+            30
+        );
+        // faces without shaping keep summing advances
+        let plain = FixedWidthFace { monospaced: false };
+        assert_eq!(
+            calc_text_width("AVA", &plain, 16, FontVariant::Variable),
+            30
+        );
     }
 
     const VARIABLE: FixedWidthFonts = FixedWidthFonts { monospaced: false };

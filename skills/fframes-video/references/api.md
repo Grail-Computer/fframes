@@ -106,7 +106,9 @@ let paragraph: Svgr = frame
 ```
 
 The helpers take `&mut frame` and return `None` when the font is not loaded; use the same
-family, size and weight in the `<text>` attributes. `text-anchor="middle"` centers on `x`.
+family, size and weight in the `<text>` attributes. Widths are shaped like the renderer draws
+them (kerning included). `font-weight` is parsed in hundreds only: ship an in-between weight
+(550, 650) as its own family name. `text-anchor="middle"` centers on `x`.
 
 ## Media
 

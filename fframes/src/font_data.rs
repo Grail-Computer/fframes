@@ -77,6 +77,12 @@ pub trait FontFace<'a>: Sync + Send + std::fmt::Debug {
     fn is_monospaced(&self) -> Option<bool>;
     fn resolve_char_width(&self, font_size: usize, char: char) -> Option<usize>;
 
+    /// Width of `text` in pixels at `font_size` as the renderer lays it out: shaped, so kerning
+    /// and ligatures count. `None` (the default) falls back to the sum of the character advances.
+    fn shaped_width(&self, _font_size: usize, _text: &str) -> Option<usize> {
+        None
+    }
+
     fn font_variant(&self, font_size: usize) -> Option<FontVariant> {
         let is_monospaced = self.is_monospaced()?;
 

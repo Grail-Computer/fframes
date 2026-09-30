@@ -33,6 +33,52 @@ impl<'a> crate::FontFace<'a> for RendererFont<'a> {
                 / face.units_per_em() as usize,
         )
     }
+
+    fn shaped_width(&self, font_size: usize, text: &str) -> Option<usize> {
+        let face = rustybuzz::Face::from_slice(self.data.as_ref().as_ref(), self.index)?;
+        let mut buffer = rustybuzz::UnicodeBuffer::new();
+        buffer.push_str(text);
+        let glyphs = rustybuzz::shape(&face, &[], buffer);
+        let units: i64 = glyphs
+            .glyph_positions()
+            .iter()
+            .map(|p| i64::from(p.x_advance))
+            .sum();
+        let width = units.max(0) as f64 * font_size as f64 / f64::from(face.units_per_em());
+        Some(width.round() as usize)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RendererFont;
+    use crate::FontFace;
+    use std::sync::Arc;
+
+    #[test]
+    fn shaped_width_applies_kerning() {
+        let data: &'static [u8] =
+            include_bytes!("../../../examples/hello-world/media/DMSans-Medium.ttf");
+        let font = RendererFont {
+            index: 0,
+            data: Arc::new(data),
+        };
+        let advances: usize = "AVAVAV"
+            .chars()
+            .map(|c| font.resolve_char_width(1000, c).unwrap())
+            .sum();
+        let shaped = font.shaped_width(1000, "AVAVAV").unwrap();
+        assert!(
+            shaped < advances,
+            "kerned {shaped} should be narrower than {advances}"
+        );
+        // no kerning pairs: the shaped width is the advance sum
+        let plain: usize = "IIII"
+            .chars()
+            .map(|c| font.resolve_char_width(1000, c).unwrap())
+            .sum();
+        assert!(font.shaped_width(1000, "IIII").unwrap().abs_diff(plain) <= 1);
+    }
 }
 
 #[derive(Debug)]
