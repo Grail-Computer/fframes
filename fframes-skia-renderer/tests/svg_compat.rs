@@ -168,6 +168,48 @@ fn shapes_strokes_and_transforms_match_dom() {
     );
 }
 
+fn count_fast_shapes(group: &usvgr::Group) -> usize {
+    group
+        .children()
+        .iter()
+        .map(|node| match node {
+            usvgr::Node::FastShape(_) => 1,
+            usvgr::Node::Group(g) => count_fast_shapes(g),
+            _ => 0,
+        })
+        .sum()
+}
+
+#[test]
+fn fast_shapes_render_like_paths() {
+    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+        <defs>
+            <linearGradient id="g"><stop offset="0" stop-color="#e63946"/><stop offset="1" stop-color="#457b9d"/></linearGradient>
+        </defs>
+        <circle cx="40" cy="40" r="25" fill="url(#g)" stroke="#1d3557" stroke-width="6"/>
+        <ellipse cx="130" cy="40" rx="50" ry="20" fill="none" stroke="#2a9d8f"
+                 stroke-width="5" stroke-dasharray="14 6"/>
+        <rect x="20" y="90" width="80" height="50" rx="14" ry="8" fill="#9b5de5"/>
+        <g opacity="0.5"><circle cx="150" cy="115" r="30" fill="#f4a261"/></g>
+        <g transform="translate(60 160) skewX(25)">
+            <rect x="0" y="0" width="70" height="30" rx="10" fill="#00b4d8" stroke="#03045e" stroke-width="3"/>
+        </g>
+    </svg>"##;
+    let fontdb = usvgr::fontdb::Database::new();
+    let fast_opt = usvgr::Options {
+        fast_shapes: true,
+        ..usvgr::Options::default()
+    };
+    let fast = usvgr::Tree::from_str(svg, &fast_opt, &fontdb).expect("failed to parse test SVG");
+    assert_eq!(count_fast_shapes(fast.root()), 5);
+
+    assert_similar(
+        "fast-shapes",
+        &render_direct(&fast),
+        &render_direct(&parse(svg)),
+    );
+}
+
 #[test]
 fn gradients_match_dom() {
     assert_matches_dom(

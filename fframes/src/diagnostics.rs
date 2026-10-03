@@ -284,17 +284,10 @@ fn inspect_group(group: &usvgr::Group, width: f32, height: f32, out: &mut Vec<Di
                     });
                 }
             }
-            usvgr::Node::Path(path) => {
-                if !path.abs_transform().is_finite() {
+            usvgr::Node::Path(_) | usvgr::Node::FastShape(_) | usvgr::Node::Image(_) => {
+                if !node.abs_transform().is_finite() {
                     out.push(Diagnostic::InvalidTransform {
-                        id: path.id().to_owned(),
-                    });
-                }
-            }
-            usvgr::Node::Image(image) => {
-                if !image.abs_transform().is_finite() {
-                    out.push(Diagnostic::InvalidTransform {
-                        id: image.id().to_owned(),
+                        id: node.id().to_owned(),
                     });
                 }
             }

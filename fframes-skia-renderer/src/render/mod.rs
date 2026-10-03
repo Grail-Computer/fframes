@@ -233,6 +233,12 @@ fn render_node(node: &usvgr::Node, canvas: &Canvas, cache: &mut RenderCache) {
         usvgr::Node::Path(path) => {
             render_path(path, canvas, cache);
         }
+        usvgr::Node::FastShape(shape) => {
+            // Only produced with `usvgr::Options::fast_shapes`; drawn from its outline.
+            if let Some(path) = shape.to_path() {
+                render_path(&path, canvas, cache);
+            }
+        }
         usvgr::Node::Image(image) => {
             render_image(image, canvas, cache);
         }
@@ -582,6 +588,14 @@ fn render_folded_opacity(
             render_path_with_alpha(path, canvas, cache, alpha);
             true
         }
+        usvgr::Node::FastShape(shape)
+            if shape.path().fill().is_none() || shape.path().stroke().is_none() =>
+        {
+            if let Some(path) = shape.to_path() {
+                render_path_with_alpha(&path, canvas, cache, alpha);
+            }
+            true
+        }
         usvgr::Node::Image(image) => match image.kind() {
             // shader images are drawn by the shader path
             usvgr::ImageKind::DATA(img) if fframes::resolve_shader_draw(img).is_some() => false,
@@ -681,21 +695,10 @@ fn build_clip_group(
 
     for child in group.children() {
         let contribution = match child {
-            usvgr::Node::Path(path) => {
-                if path.visibility() != usvgr::Visibility::Visible {
-                    continue;
-                }
-                let fill_type =
-                    path.fill()
-                        .map_or(skia_safe::PathFillType::Winding, |f| match f.rule() {
-                            usvgr::FillRule::NonZero => skia_safe::PathFillType::Winding,
-                            usvgr::FillRule::EvenOdd => skia_safe::PathFillType::EvenOdd,
-                        });
-
-                let mut sk_path = cache.convert_path(path);
-                sk_path.set_fill_type(fill_type);
-                Some(sk_path.make_transform(transform))
-            }
+            usvgr::Node::Path(path) => build_clip_shape(path, transform, cache),
+            usvgr::Node::FastShape(shape) => shape
+                .to_path()
+                .and_then(|path| build_clip_shape(&path, transform, cache)),
             usvgr::Node::Text(text) => build_clip_group(text.flattened(), transform, cache),
             usvgr::Node::Group(child_group) => {
                 let mut combined = *transform;
@@ -723,6 +726,27 @@ fn build_clip_group(
     }
 
     result
+}
+
+/// Clip geometry of one visible path: its outline with its fill rule, in clip space.
+fn build_clip_shape(
+    path: &usvgr::Path,
+    transform: &Matrix,
+    cache: &mut RenderCache,
+) -> Option<skia_safe::Path> {
+    if path.visibility() != usvgr::Visibility::Visible {
+        return None;
+    }
+    let fill_type = path
+        .fill()
+        .map_or(skia_safe::PathFillType::Winding, |f| match f.rule() {
+            usvgr::FillRule::NonZero => skia_safe::PathFillType::Winding,
+            usvgr::FillRule::EvenOdd => skia_safe::PathFillType::EvenOdd,
+        });
+
+    let mut sk_path = cache.convert_path(path);
+    sk_path.set_fill_type(fill_type);
+    Some(sk_path.make_transform(transform))
 }
 
 /// Apply a mask to the current layer content using `DstIn` blending.

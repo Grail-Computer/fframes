@@ -14,7 +14,7 @@
 //! vouches for, so large paths only mix in their bounds, segment count and a
 //! strided sample of points.
 
-use std::hash::Hasher;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use fframes::usvgr;
@@ -179,43 +179,55 @@ fn hash_exact_group(
             }
             usvgr::Node::Path(path) => {
                 h.write_u8(1);
-                let has_pattern = [
-                    path.fill().map(fframes::usvgr::Fill::paint),
-                    path.stroke().map(fframes::usvgr::Stroke::paint),
-                ]
-                .into_iter()
-                .flatten()
-                .any(|paint| matches!(paint, usvgr::Paint::Pattern(_)));
-                if has_pattern {
-                    return None;
-                }
-
-                let points = path.data().points();
-                *points_budget = points_budget.checked_sub(points.len())?;
-
-                h.write_u8(path.visibility() as u8);
-                h.write_u8(path.paint_order() as u8);
-                h.write_u8(path.rendering_mode() as u8);
-                h.bool(path.fill().is_some());
-                if let Some(fill) = path.fill() {
-                    hash_fill(h, fill);
-                }
-                h.bool(path.stroke().is_some());
-                if let Some(stroke) = path.stroke() {
-                    hash_stroke(h, stroke);
-                }
-
-                h.write_usize(path.data().verbs().len());
-                for verb in path.data().verbs() {
-                    h.write_u8(*verb as u8);
-                }
-                for point in points {
-                    h.f32(point.x);
-                    h.f32(point.y);
-                }
+                hash_exact_path(h, path, points_budget)?;
+            }
+            usvgr::Node::FastShape(shape) => {
+                // The path's data is only the bounding rectangle; the kind is the geometry.
+                h.write_u8(4);
+                shape.kind().hash(h);
+                hash_exact_path(h, shape.path(), points_budget)?;
             }
             usvgr::Node::Image(_) => return None,
         }
+    }
+
+    Some(())
+}
+
+fn hash_exact_path(h: &mut FxHasher, path: &usvgr::Path, points_budget: &mut usize) -> Option<()> {
+    let has_pattern = [
+        path.fill().map(fframes::usvgr::Fill::paint),
+        path.stroke().map(fframes::usvgr::Stroke::paint),
+    ]
+    .into_iter()
+    .flatten()
+    .any(|paint| matches!(paint, usvgr::Paint::Pattern(_)));
+    if has_pattern {
+        return None;
+    }
+
+    let points = path.data().points();
+    *points_budget = points_budget.checked_sub(points.len())?;
+
+    h.write_u8(path.visibility() as u8);
+    h.write_u8(path.paint_order() as u8);
+    h.write_u8(path.rendering_mode() as u8);
+    h.bool(path.fill().is_some());
+    if let Some(fill) = path.fill() {
+        hash_fill(h, fill);
+    }
+    h.bool(path.stroke().is_some());
+    if let Some(stroke) = path.stroke() {
+        hash_stroke(h, stroke);
+    }
+
+    h.write_usize(path.data().verbs().len());
+    for verb in path.data().verbs() {
+        h.write_u8(*verb as u8);
+    }
+    for point in points {
+        h.f32(point.x);
+        h.f32(point.y);
     }
 
     Some(())
@@ -287,6 +299,11 @@ fn hash_node(h: &mut FxHasher, node: &usvgr::Node) {
         usvgr::Node::Path(path) => {
             h.write_u8(1);
             hash_path(h, path);
+        }
+        usvgr::Node::FastShape(shape) => {
+            h.write_u8(4);
+            shape.kind().hash(h);
+            hash_path(h, shape.path());
         }
         usvgr::Node::Image(image) => {
             h.write_u8(2);
